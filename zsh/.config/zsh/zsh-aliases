@@ -42,3 +42,25 @@ case "$(uname -s)" in
      # echo 'Other OS' 
      ;;
 esac
+
+###########################
+#####      TMUX       #####
+###########################
+# FZF mods
+export FZF_DEFAULT_OPTS='--layout=reverse --border'
+
+# tmux aliases
+alias t="tmux"
+alias tls="t ls"
+alias ta="t a -t"
+alias tn="t new -s"
+alias tk="t kill-session -t"
+
+
+# Increase cursor movement speed
+# 1st value = a
+# 2nd value = b
+# After 'a' ms of pressing a key (cooldown), OS will put out 'b' no. of keys a second
+# export DISPLAY="$(grep nameserver /etc/resolv.conf | sed 's/nameserver //'):0"
+# xset r rate 300 50
+
