@@ -6,6 +6,7 @@ Install using GNU Stow
 Clone into you `$HOME` directory or `~`
 
 `git clone git@github.com:MohitRane8/dotfiles.git`
+
 `cd dotfiles`
 
 Run `stow` to symlink everything or just select what you want
