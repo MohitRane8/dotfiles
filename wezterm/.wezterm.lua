@@ -11,6 +11,11 @@ if wezterm.config_builder then
 end
 
 -- This is where you actually apply your config choices
+-- disable update checks
+config.check_for_updates = false
+
+-- Font size
+config.font_size = 11.0
 
 -- For example, changing the color scheme:
 -- config.color_scheme = 'Gruvbox dark, hard (base16)'
