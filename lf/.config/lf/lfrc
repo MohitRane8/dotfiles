@@ -4,6 +4,7 @@
 set hidden true
 set ignorecase true
 set icons true
+set previewer '~/.config/lf/preview.sh'
 
 # Custom Functions
 cmd mkdir ${{
@@ -48,6 +49,24 @@ cmd unarchive ${{
 #  trash-restore
 #}}
 
+# Search in contents of file under current directory, and jump to the selected file
+# TODO: show files with matching name first before file contents
+cmd fzf_search ${{
+    RG_PREFIX="rg --column --line-number --no-heading --color=always --smart-case "
+    res="$(
+        FZF_DEFAULT_COMMAND="$RG_PREFIX ''" \
+            fzf --bind "change:reload:$RG_PREFIX {q} || true" \
+            --ansi --layout=reverse --header 'Search in files' \
+            | cut -d':' -f1 | sed 's/\\/\\\\/g;s/"/\\"/g'
+    )"
+    [ -n "$res" ] && lf -remote "send $id select \"$res\""
+}}
+
+# Find file/directory with fuzzy matching
+# TODO: update this to use $EDITOR
+#cmd fzf $EDITOR $(find . -name "$1" | fzf)
+#cmd fzf $nvim $(find . -name "$1" | fzf)
+
 # Bindings
 map x
 map n
@@ -67,8 +86,10 @@ map R reload
 map nf mkfile
 map nd mkdir
 map C clear
+map f :fzf_search
+#map f push :fzf<space>
 
 # Bookmarks
 map gd cd ~/dotfiles
-# lf -remote "send $id cd $WINUSERDIR"
+# lf -remote "send $id cd \"$WINUSERDIR\""
 
