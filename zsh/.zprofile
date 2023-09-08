@@ -9,3 +9,9 @@ export TMUXDOTDIR=$HOME/.config/tmux
 # zsh config dir
 export ZDOTDIR=$HOME/.config/zsh
 
+# Windows user name and directory
+if [[ -n "$WSL_DISTRO_NAME" ]]; then
+    WINUSERNAME=$(powershell.exe -c '$env:UserName' | tr -d '\r')
+    WINUSERDIR="/mnt/c/Users/$WINUSERNAME"
+fi
+
