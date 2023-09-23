@@ -83,3 +83,4 @@ lfcd () {
 }
 bindkey -s '^o' '^ulfcd\n'
 
+cd ~/
