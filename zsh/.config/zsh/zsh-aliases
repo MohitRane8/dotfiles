@@ -1,8 +1,4 @@
 #!/bin/sh
-#alias j='z'
-#alias f='zi'
-#alias zsh-update-plugins="find "$ZDOTDIR/plugins" -type d -exec test -e '{}/.git' ';' -print0 | xargs -I {} -0 git -C {} pull -q"
-#alias nvimrc='nvim ~/.config/nvim/'
 
 # Colorize grep output (good for log files)
 alias grep='grep --color=auto'
@@ -13,16 +9,6 @@ alias fgrep='fgrep --color=auto'
 alias cp="cp -i"
 alias mv='mv -i'
 alias rm='rm -i'
-
-# easier to read disk
-#alias df='df -h'                          # human-readable sizes
-#alias free='free -m'                      # show sizes in MB
-
-# get top process eating memory
-alias psmem='ps auxf | sort -nr -k 4 | head -5'
-
-# get top process eating cpu ##
-alias pscpu='ps auxf | sort -nr -k 3 | head -5'
 
 case "$(uname -s)" in
 
@@ -43,24 +29,18 @@ case "$(uname -s)" in
      ;;
 esac
 
-###########################
-#####      TMUX       #####
-###########################
-# FZF mods
-export FZF_DEFAULT_OPTS='--layout=reverse --border'
-
 # tmux aliases
-alias t="tmux"
-alias tls="t ls"
-alias ta="t a -t"
-alias tn="t new -s"
-alias tk="t kill-session -t"
+alias tls="tmux list-sessions"
+alias ta="tmux_smart_attach"
+alias tk="tmux kill-session -t"
 
+# lazygit
+alias lg="lazygit"
 
-# Increase cursor movement speed
-# 1st value = a
-# 2nd value = b
-# After 'a' ms of pressing a key (cooldown), OS will put out 'b' no. of keys a second
-# export DISPLAY="$(grep nameserver /etc/resolv.conf | sed 's/nameserver //'):0"
-# xset r rate 300 50
+# common project path variables
+dotfiles=~/dotfiles
+neovim=~/.config/nvim
+
+# personal/work project path variables
+# project_path_var=""
 
