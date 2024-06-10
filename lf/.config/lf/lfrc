@@ -133,6 +133,8 @@ map f :fzf_search
 map <c-f> :fzf_jump
 
 # Bookmarks
-map gd cd ~/dotfiles
+map gdot cd ~/dotfiles
+map gneo cd ~/dotfiles/nvim/.config/nvim
+
 # lf -remote "send $id cd \"$WINUSERDIR\""
 

@@ -1,5 +1,6 @@
 -- Pull in the wezterm API
 local wezterm = require 'wezterm'
+local act = wezterm.action
 
 -- This table will hold the configuration.
 local config = {}
@@ -15,12 +16,24 @@ end
 config.check_for_updates = false
 
 -- Font size
-config.font_size = 11.0
+config.font = wezterm.font('Consolas')
+config.font_size = 12
+config.line_height = 1.1
 
 -- For example, changing the color scheme:
--- config.color_scheme = 'Gruvbox dark, hard (base16)'
+config.color_scheme = 'Gruvbox dark, hard (base16)'
 -- config.color_scheme = 'Nature Suede (terminal.sexy)'
-config.color_scheme = 'Monokai Vivid'
+-- config.color_scheme = 'Monokai Vivid'
+-- config.color_scheme = 'Ubuntu'
+-- config.color_scheme = 'Chalk (dark) (terminal.sexy)'
+-- config.color_scheme = 'dayfox'
+-- config.color_scheme = 'darkmoss (base16)'
+-- config.color_scheme = 'Derp (terminal.sexy)'
+-- config.color_scheme = 'Digerati (terminal.sexy)'
+config.color_scheme = 'Dotshare (terminal.sexy)'
+-- config.color_scheme = 'terafox'
+-- config.color_scheme = 'duckbones'
+
 
 config.default_cursor_style = 'BlinkingBlock'
 
@@ -56,30 +69,41 @@ config.keys = {
   },
 }
 
--- Function for folke/zen-mode.nvim
--- Copied from https://github.com/folke/zen-mode.nvim
-wezterm.on('user-var-changed', function(window, pane, name, value)
-    local overrides = window:get_config_overrides() or {}
-    if name == "ZEN_MODE" then
-        local incremental = value:find("+")
-        local number_value = tonumber(value)
-        if incremental ~= nil then
-            while (number_value > 0) do
-                window:perform_action(wezterm.action.IncreaseFontSize, pane)
-                number_value = number_value - 1
-            end
-            overrides.enable_tab_bar = false
-        elseif number_value < 0 then
-            window:perform_action(wezterm.action.ResetFontSize, pane)
-            overrides.font_size = nil
-            overrides.enable_tab_bar = true
-        else
-            overrides.font_size = number_value
-            overrides.enable_tab_bar = false
-        end
-    end
-    window:set_config_overrides(overrides)
-end)
+-- Select in wezterm with mouse to copy to clipboard
+-- Right click in wezterm to paste the text from clipboard
+config.mouse_bindings = {
+	{
+		event = { Down = { streak = 1, button = "Right" } },
+		mods = "NONE",
+		action = wezterm.action_callback(function(window, pane)
+			local has_selection = window:get_selection_text_for_pane(pane) ~= ""
+			if has_selection then
+				window:perform_action(act.CopyTo("ClipboardAndPrimarySelection"), pane)
+				window:perform_action(act.ClearSelection, pane)
+			else
+				window:perform_action(act({ PasteFrom = "Clipboard" }), pane)
+			end
+		end),
+	},
+}
+
+config.window_padding = { left = '0', right = '0', top = '2', bottom = '0', }
+config.hide_tab_bar_if_only_one_tab = true
+config.enable_scroll_bar = false
+config.tab_bar_at_bottom = true
+config.use_fancy_tab_bar = false
+
+config.warn_about_missing_glyphs = false
+
+-- background
+-- config.window_background_opacity = 1
+-- config.window_background_image = "c:/users/mrane/Pictures/wall_22.png"
+-- config.window_background_image = "c:/users/mrane/Pictures/blur_4.jpg"
+-- config.window_background_image_hsb = {
+--   brightness = 0.07,
+--   hue = 1.0,
+--   saturation = 0.7,
+-- }
 
 -- and finally, return the configuration to wezterm
 return config

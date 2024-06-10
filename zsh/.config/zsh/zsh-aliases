@@ -18,8 +18,8 @@ case "$(uname -s)" in
      ;;
 
    Linux)
-	alias ls='exa -a --color=always --group-directories-first'
-	alias ll='exa -al --color=always --group-directories-first'
+	alias ls='eza -a --color=always --group-directories-first'
+	alias ll='eza -al --color=always --group-directories-first'
      ;;
 
    CYGWIN*|MINGW32*|MSYS*|MINGW*)
