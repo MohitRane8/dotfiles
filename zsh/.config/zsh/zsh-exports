@@ -31,4 +31,3 @@ export FZF_DEFAULT_OPTS='--layout=reverse --border'
 
 # Paths
 export PATH="$HOME/.local/bin":$PATH
-export PATH="$HOME/.cargo/bin":$PATH
