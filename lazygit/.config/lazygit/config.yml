@@ -1,3 +1,16 @@
+gui:
+  windowSize: 'normal'
+  sidePanelWidth: 0.20
+  expandFocusedSidePanel: true
+  showCommandLog: false
+  commnadLogSize: 2
+  portraitMode: always
+  # panelOpts:
+  #   - files
+  #   - status
+  # files:
+  #   width: 0.5 # 50% of the terminal width
+
 git:
   paging:
     colorArg: always

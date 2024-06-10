@@ -18,7 +18,8 @@ case "$(uname -s)" in
      ;;
 
    Linux)
-	alias ls='ls --color=auto'
+	alias ls='exa -a --color=always --group-directories-first'
+	alias ll='exa -al --color=always --group-directories-first'
      ;;
 
    CYGWIN*|MINGW32*|MSYS*|MINGW*)
@@ -33,6 +34,22 @@ esac
 alias tls="tmux list-sessions"
 alias ta="tmux_smart_attach"
 alias tk="tmux kill-session -t"
+
+# neovim
+alias nv="$ZDOTDIR/scripts/nv.sh"
+
+# git
+alias gs="git status"
+alias ga="git add"
+alias gaa="git add ."
+alias gcm="git commit -m"
+alias gca="git commit --amend"
+alias gl="git log"
+alias glo="git log --oneline"
+alias gd="git diff"
+alias gclean="git clean -i"
+alias gpull="git pull"
+alias gpush="git push origin HEAD:refs/for/$(git symbolic-ref --short HEAD)"
 
 # lazygit
 alias lg="lazygit"

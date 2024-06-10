@@ -86,12 +86,12 @@ function set-prompt() {
   #
   # Top left:      Gray current directory.
   # Top right:     Gray time.
-  # Bottom left:   Prompt arrow: ❯, 
+  # Bottom left:   Prompt arrow: ❯, , 
   # Bottom right:
 
-  local top_left="%F{241}%2~%f"
-  local top_right="%F{241}%D{%I:%M %p}%f"
-  local bottom_left='%F{green}%f '
+  local top_left='%F{cyan}[%D{%H:%M}]%f %F{magenta}%2~%f'
+  # local top_right=''
+  local bottom_left='%F{yellow}%f '
   # local bottom_right=''
 
   local REPLY

@@ -49,6 +49,20 @@ cmd unarchive ${{
 #  trash-restore
 #}}
 
+# Jump to file/directory using fzf
+cmd fzf_jump ${{
+    res="$(find . | fzf --reverse --header='Jump to location')"
+    if [ -n "$res" ]; then
+        if [ -d "$res" ]; then
+            cmd="cd"
+        else
+            cmd="select"
+        fi
+        res="$(printf '%s' "$res" | sed 's/\\/\\\\/g;s/"/\\"/g')"
+        lf -remote "send $id $cmd \"$res\""
+    fi
+}}
+
 # Search in contents of file under current directory, and jump to the selected file
 # TODO: show files with matching name first before file contents
 cmd fzf_search ${{
@@ -66,6 +80,36 @@ cmd fzf_search ${{
 # TODO: update this to use $EDITOR
 #cmd fzf $EDITOR $(find . -name "$1" | fzf)
 #cmd fzf $nvim $(find . -name "$1" | fzf)
+
+# Bulk renaming
+# Taken from https://github.com/gokcehan/lf/issues/149#issuecomment-470960434
+cmd bulk-rename ${{
+	index=$(mktemp /tmp/lf-bulk-rename-index.XXXXXXXXXX)
+	if [ -n "${fs}" ]; then
+		echo "$fs" > $index
+	else
+		echo "$(ls "$(dirname $f)" | tr ' ' "\n")" > $index
+	fi
+	index_edit=$(mktemp /tmp/lf-bulk-rename.XXXXXXXXXX)
+	cat $index > $index_edit
+	$EDITOR $index_edit
+	if [ $(cat $index | wc -l) -eq $(cat $index_edit | wc -l) ]; then
+		max=$(($(cat $index | wc -l)+1))
+		counter=1
+		while [ $counter -le $max ]; do
+			a="$(cat $index | sed "${counter}q;d")"
+			b="$(cat $index_edit | sed "${counter}q;d")"
+			counter=$(($counter+1))
+			
+			[ "$a" = "$b" ] && continue
+			[ -e "$b" ] && echo "File exists: $b" && continue
+			mv "$a" "$b"
+		done
+	else
+		echo "Number of lines must stay the same"
+	fi
+	rm $index $index_edit
+}}
 
 # Bindings
 map x
@@ -88,6 +132,7 @@ map nd mkdir
 map C clear
 map f :fzf_search
 #map f push :fzf<space>
+map <c-f> :fzf_jump
 
 # Bookmarks
 map gd cd ~/dotfiles
