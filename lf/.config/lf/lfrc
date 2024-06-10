@@ -4,6 +4,8 @@
 set hidden true
 set ignorecase true
 set icons true
+set drawbox true
+set borderfmt "\033[1;37m"
 set previewer '~/.config/lf/preview.sh'
 
 # Custom Functions
@@ -31,23 +33,19 @@ cmd unarchive ${{
 }}
 
 # Trash bindings
-#cmd trash ${{
-#  files=$(printf "$fx" | tr '\n' ';')
-#  while [ "$files" ]; do
-#    file=${files%%;*}
-#
-#    trash-put "$(basename "$file")"
-#    if [ "$files" = "$file" ]; then
-#      files=''
-#    else
-#      files="${files#*;}"
-#    fi
-#  done
-#}}
+cmd trasher ${{
+     files=$(printf "$fx" | tr '\n' ';')
+     while [ "$files" ]; do
+        file=${files%%;*}
 
-#cmd restore_trash ${{
-#  trash-restore
-#}}
+        trash put "$(basename "$file")"
+        if [ "$files" = "$file" ]; then
+            files=''
+        else
+            files="${files#*;}"
+        fi
+     done
+}}
 
 # Jump to file/directory using fzf
 cmd fzf_jump ${{
@@ -112,23 +110,23 @@ cmd bulk-rename ${{
 }}
 
 # Bindings
-map x
-map n
+map d
+map m
 
 map au unarchive
 #map ae $wine "$f"
 
 # Basic Functions
 map . set hidden!
-#map xd trash
-#map xr restore_trash
+map D trasher
+# map dr $trash restore
 map p paste
 map d cut
 map y copy
 map <enter> open
 map R reload
-map nf mkfile
-map nd mkdir
+map mf mkfile
+map md mkdir
 map C clear
 map f :fzf_search
 #map f push :fzf<space>

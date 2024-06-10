@@ -18,6 +18,16 @@ function lfcd() {
 }
 bindkey -s '^o' '^ulfcd\n'
 
+### Windows File Explorer ###
+# Command: wf directory_path
+# - Opens windows file explorer at directory_path
+# - Relative directory_path works
+if [[ -n "$WSL_DISTRO_NAME" ]]; then
+    function wf() {
+        /mnt/c/Windows/explorer.exe $(wslpath -w "$1")
+    }
+fi
+
 ### tmux ###
 # attaches to an existing session
 # creates new session if not present already

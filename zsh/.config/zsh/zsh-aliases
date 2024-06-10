@@ -54,6 +54,11 @@ alias gpush="git push origin HEAD:refs/for/$(git symbolic-ref --short HEAD)"
 # lazygit
 alias lg="lazygit"
 
+# trash-cli
+# alias tr="trash put"
+# alias trl="trash list"
+# alias trr="trash list | fzf --multi | awk '{$1=$1;print}' | rev | cut -d ' ' -f1 | rev | xargs trash restore --match=exact --force"
+
 # common project path variables
 dotfiles=~/dotfiles
 neovim=~/.config/nvim
