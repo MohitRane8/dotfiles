@@ -1,3 +1,0 @@
-## WezTerm Setup
-
-

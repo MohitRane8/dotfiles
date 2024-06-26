@@ -32,19 +32,40 @@ cmd unarchive ${{
   esac
 }}
 
-# Trash bindings
+# Trash all selected files/directories
 cmd trasher ${{
      files=$(printf "$fx" | tr '\n' ';')
      while [ "$files" ]; do
         file=${files%%;*}
 
+        # Move the file/directory to trash
         trash put "$(basename "$file")"
+
         if [ "$files" = "$file" ]; then
             files=''
         else
             files="${files#*;}"
         fi
      done
+}}
+
+# Open all selected files/directories in Windows
+cmd open_in_windows ${{
+    files=$(printf "$fx" | tr '\n' ';')
+    while [ "$files" ]; do
+        file=${files%%;*}
+
+        # Open the file/directory in Windows
+        if [ -n "$WSL_DISTRO_NAME" ]; then
+            wslview "$file"
+        fi
+
+        if [ "$files" = "$file" ]; then
+            files=''
+        else
+            files="${files#*;}"
+        fi
+    done
 }}
 
 # Jump to file/directory using fzf
@@ -112,6 +133,7 @@ cmd bulk-rename ${{
 # Bindings
 map d
 map m
+map w
 
 map au unarchive
 #map ae $wine "$f"
@@ -131,10 +153,13 @@ map C clear
 map f :fzf_search
 #map f push :fzf<space>
 map <c-f> :fzf_jump
+map wv open_in_windows
 
 # Bookmarks
 map gdot cd ~/dotfiles
 map gneo cd ~/dotfiles/nvim/.config/nvim
 
-# lf -remote "send $id cd \"$WINUSERDIR\""
+# Windows Bookmarks
+map gdow cd /mnt/c/Users/mrane/Downloads
+map gdoc cd /mnt/c/Users/mrane/Documents
 

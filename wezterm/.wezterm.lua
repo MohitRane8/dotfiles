@@ -16,23 +16,26 @@ end
 config.check_for_updates = false
 
 -- Font size
-config.font = wezterm.font('Consolas')
+-- config.font = wezterm.font('Consolas')
+config.font = wezterm.font('mononoki Bold')
+-- config.font = wezterm.font('mononoki Regular')
 config.font_size = 12
 config.line_height = 1.1
 
 -- For example, changing the color scheme:
-config.color_scheme = 'Gruvbox dark, hard (base16)'
+-- config.color_scheme = 'Gruvbox dark, hard (base16)'
 -- config.color_scheme = 'Nature Suede (terminal.sexy)'
 -- config.color_scheme = 'Monokai Vivid'
 -- config.color_scheme = 'Ubuntu'
 -- config.color_scheme = 'Chalk (dark) (terminal.sexy)'
 -- config.color_scheme = 'dayfox'
 -- config.color_scheme = 'darkmoss (base16)'
--- config.color_scheme = 'Derp (terminal.sexy)'
+config.color_scheme = 'Derp (terminal.sexy)'
 -- config.color_scheme = 'Digerati (terminal.sexy)'
-config.color_scheme = 'Dotshare (terminal.sexy)'
+-- config.color_scheme = 'Dotshare (terminal.sexy)'
 -- config.color_scheme = 'terafox'
 -- config.color_scheme = 'duckbones'
+-- config.color_scheme = 'Night Owl (Gogh)'
 
 
 config.default_cursor_style = 'BlinkingBlock'
@@ -97,10 +100,9 @@ config.warn_about_missing_glyphs = false
 
 -- background
 -- config.window_background_opacity = 1
--- config.window_background_image = "c:/users/mrane/Pictures/wall_22.png"
--- config.window_background_image = "c:/users/mrane/Pictures/blur_4.jpg"
+-- config.window_background_image = "c:/users/mrane/OneDrive - Marvell/Pictures/gradient_1.png"
 -- config.window_background_image_hsb = {
---   brightness = 0.07,
+--   brightness = 0.17,
 --   hue = 1.0,
 --   saturation = 0.7,
 -- }
