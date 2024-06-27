@@ -7,6 +7,7 @@
 \.git
 \.gitmodules
 \.gitignore
+\firefox
 \wezterm
 \wsl
 
