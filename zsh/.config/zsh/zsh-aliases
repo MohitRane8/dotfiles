@@ -44,16 +44,18 @@ alias ga="git add"
 alias gaa="git add ."
 alias gcm="git commit -m"
 alias gca="git commit --amend"
+alias gcp="git cherry-pick"
 alias gl="git log"
 alias glo="git log --oneline"
 alias glot="git log --oneline --graph --decorate"
 alias gwa="git worktree add"
 alias gwl="git worktree list"
+alias gwm="git worktree move"                       # to rename worktrees [old_name] [new_name]
 alias gbl="git branch -avv"
+alias gbm="git branch -m"                           # to rename branches [old_name] [new_name]
 alias gd="git diff"
 alias gclean="git clean -i"
 alias gpull="git pull"
-alias gpush="git push origin HEAD:refs/for/$(git symbolic-ref --short HEAD)"
 
 # lazygit
 alias lg="lazygit"

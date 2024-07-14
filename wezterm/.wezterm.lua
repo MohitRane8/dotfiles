@@ -20,7 +20,7 @@ config.check_for_updates = false
 config.font = wezterm.font('mononoki Bold')
 -- config.font = wezterm.font('mononoki Regular')
 config.font_size = 12
-config.line_height = 1.1
+-- config.line_height = 1.1
 
 -- For example, changing the color scheme:
 -- config.color_scheme = 'Gruvbox dark, hard (base16)'

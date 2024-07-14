@@ -132,7 +132,7 @@ cmd bulk-rename ${{
 
 # Bindings
 map d
-map m
+map n
 map w
 
 map au unarchive
@@ -147,8 +147,8 @@ map d cut
 map y copy
 map <enter> open
 map R reload
-map mf mkfile
-map md mkdir
+map nf mkfile
+map nd mkdir
 map C clear
 map f :fzf_search
 #map f push :fzf<space>
@@ -156,8 +156,8 @@ map <c-f> :fzf_jump
 map wv open_in_windows
 
 # Bookmarks
-map gdot cd ~/dotfiles
-map gneo cd ~/dotfiles/nvim/.config/nvim
+map gm cd ~/dotfiles
+map gn cd ~/dotfiles/nvim/.config/nvim
 
 # Windows Bookmarks
 map gdow cd /mnt/c/Users/mrane/Downloads
