@@ -160,6 +160,6 @@ map gm cd ~/dotfiles
 map gn cd ~/dotfiles/nvim/.config/nvim
 
 # Windows Bookmarks
-map gdow cd /mnt/c/Users/mrane/Downloads
-map gdoc cd /mnt/c/Users/mrane/Documents
+map gi cd /mnt/c/Users/mrane/Downloads
+map go cd /mnt/c/Users/mrane/Documents
 
