@@ -1,0 +1,8 @@
+# Don't ignore .gitignore
+.gitignore
+
+# Ignore all plugins
+*
+
+# But don't ignore the tpm plugin itself (the submodule)
+!tpm/ 
