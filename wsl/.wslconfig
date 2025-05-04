@@ -1,4 +1,4 @@
-# To be placed at C:\Users\username
+# To be placed at C:\Users\<username>
 
 [wsl2]
-memory=8GB # Limit VM memory to 8 GB
+memory=12GB # Limit VM memory to 12 GB

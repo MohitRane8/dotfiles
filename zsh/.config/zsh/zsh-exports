@@ -17,6 +17,11 @@ export XDG_DATA_HOME=$HOME/.local/share
 # Tmux config dir
 export TMUXDOTDIR=$HOME/.config/tmux
 
+# Setup Rust related env vars
+if [ -f "$HOME/.cargo/env" ]; then
+    . "$HOME/.cargo/env"
+fi
+
 # Cargo install dir
 export CARGO_INSTALL_ROOT=$HOME/.local
 

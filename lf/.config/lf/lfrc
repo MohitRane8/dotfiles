@@ -130,10 +130,50 @@ cmd bulk-rename ${{
 	rm $index $index_edit
 }}
 
+# Pre-requisite: Beyond Compare 4
+# Define a custom command to compare two selected files/folders
+cmd compare ${{
+    file_count=$(echo "$fx" | wc -l)
+    if [ "$file_count" -ne 2 ]; then
+        echo "Select exactly 2 files/folders to compare"
+    else
+        # Get the selected files
+        file1=$(echo "$fx" | head -n 1)
+        file2=$(echo "$fx" | tail -n 1)
+        # Launch Beyond Compare with the selected files in the background
+        /mnt/c/Program\ Files/Beyond\ Compare\ 4/BCompare.exe "$(wslpath -w "$file1")" "$(wslpath -w "$file2")" &
+    fi
+}}
+
+# Copy selected files to Windows Clipboard
+cmd copy_files_to_windows_clipboard ${{
+    files=$(printf "$fx" | tr '\n' ' ')
+    if [ -n "$files" ]; then
+        paths=""
+        for file in $files; do
+            paths="$paths\"$(wslpath -w "$file")\","
+        done
+        # Remove trailing comma
+        paths="${paths%,}"
+        nohup powershell.exe -Command "Set-Clipboard -Path @($paths)" > /dev/null 2>&1 &
+    fi
+}}
+
+# Copy parent directory path of the current item to Windows Clipboard
+cmd copy_parent_dir_windows_path ${{
+    if [ -n "$f" ]; then
+        parent_dir=$(dirname "$f")
+        wsl_parent_dir=$(wslpath -w "$parent_dir" | sed 's|\\\\wsl\.localhost|\\\\\\\\wsl$|')
+        nohup sh -c "printf '%s' \"$wsl_parent_dir\" | clip.exe" > /dev/null 2>&1 &
+    fi
+}}
+
 # Bindings
 map d
 map n
 map w
+map f
+map b
 
 map au unarchive
 #map ae $wine "$f"
@@ -149,17 +189,19 @@ map <enter> open
 map R reload
 map nf mkfile
 map nd mkdir
-map C clear
-map f :fzf_search
+map ff :fzf_jump
+map fs :fzf_search
 #map f push :fzf<space>
-map <c-f> :fzf_jump
-map wv open_in_windows
+map wo open_in_windows
+map wy copy_files_to_windows_clipboard
+map wp copy_parent_dir_windows_path
+map bc compare
 
 # Bookmarks
 map gm cd ~/dotfiles
 map gn cd ~/dotfiles/nvim/.config/nvim
 
 # Windows Bookmarks
-map gi cd /mnt/c/Users/mrane/Downloads
-map go cd /mnt/c/Users/mrane/Documents
+map gi cd /mnt/c/Users/Mohit/Downloads
+map go cd /mnt/c/Users/Mohit/Documents
 
