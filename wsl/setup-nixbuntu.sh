@@ -1,10 +1,24 @@
 #!/bin/bash
 set -e
 
-# Prompt for username
-read -p "Enter new local username: " USERNAME
+# Prompt for root password
+echo "Set root password:"
+read -s -p "Enter root password: " ROOT_PASS
+echo
+read -s -p "Confirm root password: " ROOT_PASS_CONFIRM
+echo
 
-# Prompt silently for password
+if [[ "$ROOT_PASS" != "$ROOT_PASS_CONFIRM" ]]; then
+    echo "Root passwords do not match. Exiting."
+    exit 1
+fi
+
+# Set root password
+echo "root:$ROOT_PASS" | chpasswd
+echo "Root password set."
+
+# Prompt for new local user
+read -p "Enter new local username: " USERNAME
 read -s -p "Enter password for $USERNAME: " PASSWORD
 echo
 read -s -p "Confirm password for $USERNAME: " PASSWORD_CONFIRM
@@ -15,7 +29,7 @@ if [[ "$PASSWORD" != "$PASSWORD_CONFIRM" ]]; then
     exit 1
 fi
 
-# Create user and configure WSL default user
+# Set user and password
 useradd -m -s /bin/bash "$USERNAME"
 echo "$USERNAME:$PASSWORD" | chpasswd
 usermod -aG adm,cdrom,sudo,dip,plugdev "$USERNAME"
