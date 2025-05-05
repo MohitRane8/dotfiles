@@ -22,9 +22,9 @@ Write-Host "[3/7] Importing WSL distro '$distroName' using downloaded rootfs..."
 wsl --import $distroName $destination $tarballPath --version 2
 wsl --set-default $distroName
 
-
-# Step 4: Copy the first-run script inside the new WSL instance
+# Step 4: Install minimal apt packages and copy the first-run script inside the new WSL instance
 Write-Host "[4/7] Copying first-run script into WSL and executing it..." -ForegroundColor Cyan
+wsl -d $distroName -- bash -c "apt update && DEBIAN_FRONTEND=noninteractive apt install -y sudo vim wget xz-utils openssh-client ca-certificates"
 wsl -d $distroName -- bash -c "wget https://raw.githubusercontent.com/MohitRane8/dotfiles/main/wsl/setup-nixbuntu.sh -O /first-run.sh"
 wsl -d $distroName -- chmod +x /first-run.sh
 wsl -d $distroName -- bash /first-run.sh

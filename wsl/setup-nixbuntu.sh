@@ -38,11 +38,6 @@ usermod -aG adm,cdrom,sudo,dip,plugdev "$USERNAME"
 echo "[user]
 default=$USERNAME" > /etc/wsl.conf
 
-# Install minimal apt packages
-echo "Installing minimal apt packages..."
-apt update
-DEBIAN_FRONTEND=noninteractive apt install -y sudo vim wget xz-utils openssh-client ca-certificates
-
 # Add cd ~ to .bashrc if not already present
 if ! grep -Fxq 'cd ~' /home/"$USERNAME"/.bashrc; then
   echo 'cd ~' >> /home/"$USERNAME"/.bashrc
