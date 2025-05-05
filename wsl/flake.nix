@@ -19,6 +19,10 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         p = import nixpkgs { inherit system; };
+
+        # controls dotfiles repo clone with SSH/HTTPS
+        withGitPush = builtins.getEnv "WITH_GIT_PUSH" == "true";
+
         neovim = import neovimPkgs { inherit system; };
 
         lfWithDeps = p.symlinkJoin {
