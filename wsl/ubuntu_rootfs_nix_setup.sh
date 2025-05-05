@@ -38,8 +38,8 @@ mkdir -p /etc/nix
 echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
 
 # Get flake.nix
-mkdir -p ~/.config/nix
-wget -O ~/.config/nix/flake.nix https://raw.githubusercontent.com/MohitRane8/dotfiles/main/wsl/flake.nix
+mkdir -p /home/$USERNAME/.config/nix
+wget -O /home/$USERNAME/.config/nix/flake.nix https://raw.githubusercontent.com/MohitRane8/dotfiles/main/wsl/flake.nix
 
 echo
 echo "Setup complete. Exit WSL and re-enter with: wsl -d <distro-name> --user $USERNAME"
