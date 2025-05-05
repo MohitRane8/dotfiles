@@ -7,6 +7,13 @@ read -p "Enter new username: " USERNAME
 # Prompt silently for password
 read -s -p "Enter password for $USERNAME: " PASSWORD
 echo
+read -s -p "Confirm password for $USERNAME: " PASSWORD_CONFIRM
+echo
+
+if [[ "$PASSWORD" != "$PASSWORD_CONFIRM" ]]; then
+  echo "Passwords do not match. Exiting."
+  exit 1
+fi
 
 # Create user and configure WSL default user
 useradd -m -s /bin/bash "$USERNAME"
@@ -39,6 +46,7 @@ echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
 
 # Get flake.nix
 mkdir -p /home/$USERNAME/.config/nix
+chown -R $USERNAME:$USERNAME ~/.config/nix
 wget -O /home/$USERNAME/.config/nix/flake.nix https://raw.githubusercontent.com/MohitRane8/dotfiles/main/wsl/flake.nix
 
 echo

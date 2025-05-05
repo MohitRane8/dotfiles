@@ -43,6 +43,11 @@
             p.tmuxPlugins.resurrect
           ];
         };
+
+        # This allows the shellHook to clone the dotfiles repo based on how nix develop is called
+        # Calling `WITH_GIT_PUSH=true nix develop` will clone dotfiles repo with SSH (intended for git push)
+        # Calling `nix develop` will clone dotfiles repo with HTTPS (intended for read only)
+        withGitPush = builtins.getEnv "WITH_GIT_PUSH" == "true";
       in {
         devShells.default = p.mkShell {
           packages = [
@@ -112,7 +117,7 @@
             if [ ! -d "$DOTFILES_DIR" ]; then
               echo "Cloning dotfiles..."
 
-              if [ "${WITH_GIT_PUSH:-false}" = "true" ]; then
+              ${if withGitPush then ''
                 echo "[WITH_GIT_PUSH=true] Cloning via SSH..."
 
                 if [ ! -f ~/.ssh/id_ed25519 ]; then
@@ -129,7 +134,7 @@
 
                 # Clone dotfiles repo recursively with SSH
                 git clone --recurse-submodules git@github.com:MohitRane8/dotfiles "$DOTFILES_DIR"
-              else
+              '' else ''
                 echo "[WITH_GIT_PUSH=false] Cloning via HTTPS..."
 
                 # Clone dotfiles repo with HTTPS
@@ -143,7 +148,7 @@
 
                 # Fetch and initialize submodules
                 git submodule update --init --recursive
-              fi
+              ''}
 
               # Run stow
               cd "$DOTFILES_DIR"
