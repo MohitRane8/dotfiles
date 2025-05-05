@@ -31,8 +31,9 @@ wsl --set-default $distroName
 
 # Step 5: Copy the first-run script inside the new WSL instance
 Write-Host "[5/8] Copying first-run script into WSL and executing it..." -ForegroundColor Cyan
-(Get-Content "$destination\first-run.sh" -Raw) -replace "`r`n", "`n" | Set-Content "$destination\first-run.sh"
-Get-Content $tempScript | wsl -d $distroName -- bash -c "cat > /first-run.sh"
+# Convert the Windows line endings to Unix line endings before copying
+(Get-Content $tempScript -Raw) -replace "`r`n", "`n" | Set-Content "$destination\first-run.sh"
+wsl -d $distroName -- bash -c "cat > /first-run.sh" < "$destination\first-run.sh"
 wsl -d $distroName -- chmod +x /first-run.sh
 wsl -d $distroName -- bash /first-run.sh
 
@@ -40,11 +41,11 @@ wsl -d $distroName -- bash /first-run.sh
 Write-Host "[6/8] Cleaning up /first-run.sh..." -ForegroundColor Cyan
 wsl -d $distroName --exec rm -f /first-run.sh
 
-# Step 6: Read the created WSL username
+# Step 7: Read the created WSL username
 Write-Host "[7/8] Reading created WSL username..." -ForegroundColor Cyan
 $username = wsl -d $distroName --exec cat /root/.nixbuntu-user
 
-# Step 7: Re-enter WSL with newly created username
+# Step 8: Re-enter WSL with newly created username
 Write-Host "[8/8] Re-entering WSL as $username..." -ForegroundColor Cyan
 Write-Host "(Next step inside WSL) Run 'nix develop ~/.config/nix' to enter your Nix environment." -ForegroundColor Yellow
 wsl -d $distroName --user $username
