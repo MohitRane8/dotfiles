@@ -124,7 +124,7 @@
                   echo "SSH key not found at ~/.ssh/id_ed25519."
                   echo "Generate SSH key locally and register it on GitHub."
                   echo "Exiting nix develop shell."
-                  exit 1
+                  return 1
                 fi
 
                 if ! pgrep -u "$USER" ssh-agent > /dev/null; then
@@ -160,7 +160,7 @@
 
             # Set ZSH as default shell
             export SHELL="${p.zsh}/bin/zsh"
-            if [[ "$_" != "$SHELL" ]]; then
+            if [[ "$?" -eq 0 && "$_" != "$SHELL" ]]; then
               exec ${p.zsh}/bin/zsh -il
             fi
           '';

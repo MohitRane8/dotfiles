@@ -11,8 +11,8 @@ read -s -p "Confirm password for $USERNAME: " PASSWORD_CONFIRM
 echo
 
 if [[ "$PASSWORD" != "$PASSWORD_CONFIRM" ]]; then
-  echo "Passwords do not match. Exiting."
-  exit 1
+    echo "Passwords do not match. Exiting."
+    exit 1
 fi
 
 # Create user and configure WSL default user
