@@ -47,6 +47,7 @@ echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
 # Get flake.nix
 mkdir -p /home/$USERNAME/.config/nix
 chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.config"
+chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.config/flake.nix"
 wget -O /home/$USERNAME/.config/nix/flake.nix https://raw.githubusercontent.com/MohitRane8/dotfiles/main/wsl/flake.nix
 
 echo

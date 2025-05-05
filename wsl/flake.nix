@@ -20,9 +20,6 @@
       let
         p = import nixpkgs { inherit system; };
 
-        # controls dotfiles repo clone with SSH/HTTPS
-        withGitPush = builtins.getEnv "WITH_GIT_PUSH" == "true";
-
         neovim = import neovimPkgs { inherit system; };
 
         lfWithDeps = p.symlinkJoin {
@@ -116,7 +113,7 @@
             if [ ! -d "$DOTFILES_DIR" ]; then
               echo "Cloning dotfiles..."
 
-              if [ "$${WITH_GIT_PUSH:-false}" = "true" ]; then
+              if [ $WITH_GIT_PUSH == "true" ]; then
                 echo "[WITH_GIT_PUSH=true] Cloning via SSH..."
 
                 if [ ! -f ~/.ssh/id_ed25519 ]; then
@@ -130,6 +127,7 @@
                   eval "$(ssh-agent -s)"
                 fi
                 ssh-add ~/.ssh/id_ed25519
+                ssh-keyscan github.com >> ~/.ssh/known_hosts
 
                 # Clone dotfiles repo recursively with SSH
                 git clone --recurse-submodules git@github.com:MohitRane8/dotfiles "$DOTFILES_DIR"
