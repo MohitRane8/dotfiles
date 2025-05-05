@@ -33,7 +33,7 @@ wsl --set-default $distroName
 Write-Host "[5/8] Copying first-run script into WSL and executing it..." -ForegroundColor Cyan
 # Convert the Windows line endings to Unix line endings before copying
 (Get-Content $tempScript -Raw) -replace "`r`n", "`n" | Set-Content "$destination\first-run.sh"
-wsl -d $distroName -- bash -c "cat > /first-run.sh" < "$destination\first-run.sh"
+wsl -d $distroName -- bash -c "echo '$((Get-Content "$destination\first-run.sh" -Raw))' > /first-run.sh"
 wsl -d $distroName -- chmod +x /first-run.sh
 wsl -d $distroName -- bash /first-run.sh
 
