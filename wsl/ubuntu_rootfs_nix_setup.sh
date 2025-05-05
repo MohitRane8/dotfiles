@@ -2,7 +2,7 @@
 set -e
 
 # Prompt for username
-read -p "Enter new username: " USERNAME
+read -p "Enter new local username: " USERNAME
 
 # Prompt silently for password
 read -s -p "Enter password for $USERNAME: " PASSWORD
@@ -46,8 +46,8 @@ echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
 
 # Get flake.nix
 mkdir -p /home/$USERNAME/.config/nix
-chown -R $USERNAME:$USERNAME /home/$USERNAME/.config/nix
+chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.config"
 wget -O /home/$USERNAME/.config/nix/flake.nix https://raw.githubusercontent.com/MohitRane8/dotfiles/main/wsl/flake.nix
 
 echo
-echo "Setup complete. Exit WSL and re-enter with: wsl -d <distro-name> --user $USERNAME"
+echo "Setup complete. Exit WSL and re-enter with: wsl -d $WSL_DISTRO_NAME --user $USERNAME"
