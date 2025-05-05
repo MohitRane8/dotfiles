@@ -31,11 +31,12 @@ wsl --set-default $distroName
 
 # Step 5: Copy the first-run script inside the new WSL instance
 Write-Host "[5/8] Copying first-run script into WSL and executing it..." -ForegroundColor Cyan
-wsl -d $distroName -- bash -c "cat > /first-run.sh" < $tempScript
+Get-Content $tempScript | wsl -d $distroName -- bash -c "cat > /first-run.sh"
+wsl -d $distroName -- chmod +x /first-run.sh
 wsl -d $distroName -- bash /first-run.sh
 
 # Step 6: Clean up first-run script
-Write-Host "[6/7] Cleaning up /first-run.sh..." -ForegroundColor Cyan
+Write-Host "[6/8] Cleaning up /first-run.sh..." -ForegroundColor Cyan
 wsl -d $distroName --exec rm -f /first-run.sh
 
 # Step 6: Read the created WSL username
