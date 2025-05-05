@@ -46,9 +46,9 @@ echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
 
 # Get flake.nix
 mkdir -p /home/$USERNAME/.config/nix
-chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.config"
-chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.config/flake.nix"
 wget -O /home/$USERNAME/.config/nix/flake.nix https://raw.githubusercontent.com/MohitRane8/dotfiles/main/wsl/flake.nix
+chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.config"
+chmod -R u+w "/home/$USERNAME/.config"
 
 echo
 echo "Setup complete. Exit WSL and re-enter with: wsl -d $WSL_DISTRO_NAME --user $USERNAME"
