@@ -2,7 +2,7 @@
 set -e
 
 # Prompt for root password
-echo "Set root password:"
+echo "Root password setup"
 read -s -p "Enter root password: " ROOT_PASS
 echo
 read -s -p "Confirm root password: " ROOT_PASS_CONFIRM
@@ -38,6 +38,16 @@ usermod -aG adm,cdrom,sudo,dip,plugdev "$USERNAME"
 echo "[user]
 default=$USERNAME" > /etc/wsl.conf
 
+# Install minimal apt packages
+echo "Installing minimal apt packages..."
+apt update
+DEBIAN_FRONTEND=noninteractive apt install -y sudo vim wget xz-utils openssh-client ca-certificates
+
+# Add cd ~ to .bashrc if not already present
+if ! grep -Fxq 'cd ~' /home/"$USERNAME"/.bashrc; then
+  echo 'cd ~' >> /home/"$USERNAME"/.bashrc
+fi
+
 # Install Nix
 echo "Installing Nix (daemon mode)"
 wget -qO- https://nixos.org/nix/install | bash -s -- --daemon
@@ -64,5 +74,9 @@ wget -O /home/$USERNAME/.config/nix/flake.nix https://raw.githubusercontent.com/
 chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.config"
 chmod -R u+w "/home/$USERNAME/.config"
 
+# Log created username for use by PowerShell
+echo "$USERNAME" > /root/.nixbuntu-user
+
 echo
-echo "Setup complete. Exit WSL and re-enter with: wsl -d $WSL_DISTRO_NAME --user $USERNAME"
+echo "Nixbuntu is ready!"
+echo "Exiting root session."
