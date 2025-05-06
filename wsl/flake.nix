@@ -139,9 +139,7 @@
                 cd "$DOTFILES_DIR"
 
                 # Rewrite .gitmodules entries from SSH to HTTPS
-                cat .gitmodules
                 sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
-                cat .gitmodules
                 
                 # Sync and init submodules
                 git submodule sync
