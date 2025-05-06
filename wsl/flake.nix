@@ -139,18 +139,10 @@
                 cd "$DOTFILES_DIR"
 
                 # Rewrite .gitmodules entries from SSH to HTTPS
+                cat .gitmodules
                 sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
+                cat .gitmodules
                 
-                # Rewrite submodule config overrides too
-                git submodule foreach '
-                  url=$(git config submodule.$name.url)
-                  if [[ "$url" == git@github.com:* ]]; then
-                    https_url=${url/git@github.com:/https://github.com/}
-                    echo "Rewriting $name URL from $url to $https_url"
-                    git config submodule.$name.url "$https_url"
-                  fi
-                '
-
                 # Sync and init submodules
                 git submodule sync
                 git submodule update --init --recursive
