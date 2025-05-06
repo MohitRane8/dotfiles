@@ -138,7 +138,10 @@
                 git clone https://github.com/MohitRane8/dotfiles "$DOTFILES_DIR"
                 cd "$DOTFILES_DIR"
 
-                # Rewrite submodule URLs
+                # Rewrite .gitmodules entries from SSH to HTTPS
+                sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
+                
+                # Rewrite submodule config overrides too
                 git submodule foreach '
                   url=$(git config submodule.$name.url)
                   if [[ "$url" == git@github.com:* ]]; then
