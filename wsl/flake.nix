@@ -70,11 +70,11 @@
             p.stow
 
             # shell
-      # zsh plugins managed by dotfiles repo submodules
+            # zsh plugins managed by dotfiles repo submodules
             p.zsh
 
             # terminal manager
-      # tmux plugins managed by dotfiles repo submodules
+            # tmux plugins managed by dotfiles repo submodules
             p.tmux
 
             # file manager
@@ -136,15 +136,20 @@
 
                 # Clone dotfiles repo with HTTPS
                 git clone https://github.com/MohitRane8/dotfiles "$DOTFILES_DIR"
-
-                # Set SSH to HTTPS override in local git config of dotfiles repo
-                # This will translate submodule init/update from
-                # git@github.com:username/repo.git to https://github.com/username/repo.git
                 cd "$DOTFILES_DIR"
-                git config url."https://github.com/".insteadOf git@github.com:
-                git submodule sync
 
-                # Fetch and initialize submodules
+                # Rewrite submodule URLs
+                git submodule foreach '
+                  url=$(git config submodule.$name.url)
+                  if [[ "$url" == git@github.com:* ]]; then
+                    https_url=${url/git@github.com:/https://github.com/}
+                    echo "Rewriting $name URL from $url to $https_url"
+                    git config submodule.$name.url "$https_url"
+                  fi
+                '
+
+                # Sync and init submodules
+                git submodule sync
                 git submodule update --init --recursive
               fi
 
