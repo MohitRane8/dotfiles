@@ -142,6 +142,7 @@
                 # git@github.com:username/repo.git to https://github.com/username/repo.git
                 cd "$DOTFILES_DIR"
                 git config url."https://github.com/".insteadOf git@github.com:
+                git submodule sync
 
                 # Fetch and initialize submodules
                 git submodule update --init --recursive
@@ -157,7 +158,11 @@
 
             # Set ZSH as default shell
             export SHELL="${p.zsh}/bin/zsh"
-            if [[ "$?" -eq 0 && "$_" != "$SHELL" ]]; then
+
+            # Only exec zsh if:
+            #  - we’re in an interactive terminal (so PowerShell automation doesn't get stuck)
+            #  - the current shell isn’t already zsh
+            if [[ -t 1 && "$?" -eq 0 && "$_" != "$SHELL" ]]; then
               exec ${p.zsh}/bin/zsh -il
             fi
           '';
