@@ -20,11 +20,11 @@ Show-StepProgress 1 "Setting up WSL environment" "Creating WSL rootfs directory.
 New-Item -ItemType Directory -Path $destination -Force | Out-Null
 
 Show-StepProgress 2 "Setting up WSL environment" "Downloading Ubuntu base rootfs..."
- if (-Not (Test-Path $tarballPath)) {
+if (-Not (Test-Path $tarballPath)) {
     Invoke-WebRequest `
-      -Uri "https://cdimage.ubuntu.com/ubuntu-base/releases/noble/release/$tarballName" `
-      -OutFile $tarballPath `
-      -UseBasicParsing
+        -Uri "https://cdimage.ubuntu.com/ubuntu-base/releases/noble/release/$tarballName" `
+        -OutFile $tarballPath `
+        -UseBasicParsing
 } else {
     Write-Host "Tarball already exists at $tarballPath. Skipping download." -ForegroundColor Yellow
 }
@@ -44,8 +44,7 @@ wsl -d $distroName -- rm -f /first-run.sh
 
 Show-StepProgress 6 "Setting up WSL environment" "Installing Nix packages..."
 wsl --shutdown
-wsl -d $distroName -- bash -c "sudo /nix/var/nix/profiles/default/bin/nix-daemon & disown; until pgrep -x nix-daemon > /dev/null; do sleep 0.5; done; source /etc/profile; nix develop ~/.config/nix --command true"
-wsl --shutdown
+wsl -d $distroName -- bash -c "sudo /nix/var/nix/profiles/default/bin/nix-daemon & disown; until pgrep -x nix-daemon > /dev/null; do sleep 0.5; done; source /etc/profile; EXIT_AFTER_HOOK=1 nix develop ~/.config/nix"
 
 Write-Progress -Activity "Setup Complete" -Status "Launching WSL..." -Completed
 Write-Host ""
