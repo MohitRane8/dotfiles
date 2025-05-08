@@ -165,6 +165,7 @@
               # Enter zsh shell
               exec ${p.zsh}/bin/zsh -il
             fi
+          '';
         };
       });
 }
