@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $destination = "C:\WSL\Ubuntu24"
 $tarballName = "ubuntu-base-24.04.2-base-amd64.tar.gz"
 $tarballPath = "$destination\$tarballName"
-$distroName = "nixbuntu"
+$distroName = "Nixbuntu"
 $totalSteps = 6
 
 function Show-StepProgress {
@@ -16,10 +16,10 @@ function Show-StepProgress {
     Write-Host "`n[$step/$totalSteps] $status" -ForegroundColor Cyan
 }
 
-Show-StepProgress 1 "Setting up WSL environment" "Creating WSL rootfs directory..."
+Show-StepProgress 1 "Setting up WSL environment" "Creating directory for WSL..."
 New-Item -ItemType Directory -Path $destination -Force | Out-Null
 
-Show-StepProgress 2 "Setting up WSL environment" "Downloading Ubuntu base rootfs..."
+Show-StepProgress 2 "Setting up WSL environment" "Downloading Ubuntu rootfs..."
 if (-Not (Test-Path $tarballPath)) {
     Invoke-WebRequest `
         -Uri "https://cdimage.ubuntu.com/ubuntu-base/releases/noble/release/$tarballName" `
@@ -29,7 +29,7 @@ if (-Not (Test-Path $tarballPath)) {
     Write-Host "Tarball already exists at $tarballPath. Skipping download." -ForegroundColor Yellow
 }
 
-Show-StepProgress 3 "Setting up WSL environment" "Importing WSL distro '$distroName'..."
+Show-StepProgress 3 "Setting up WSL environment" "Importing Ubuntu rootfs..."
 wsl --import $distroName $destination $tarballPath --version 2
 wsl --set-default $distroName
 
@@ -44,9 +44,9 @@ wsl -d $distroName -- rm -f /first-run.sh
 
 Show-StepProgress 6 "Setting up WSL environment" "Installing Nix packages..."
 wsl --shutdown
-wsl -d $distroName -- bash -c "sudo /nix/var/nix/profiles/default/bin/nix-daemon & disown; until pgrep -x nix-daemon > /dev/null; do sleep 0.5; done; source /etc/profile; EXIT_AFTER_HOOK=1 nix develop ~/.config/nix"
+wsl -d $distroName -- bash -c "sudo /nix/var/nix/profiles/default/bin/nix-daemon & disown; until pgrep -x nix-daemon > /dev/null; do sleep 0.5; done; source /etc/profile; EXIT_AFTER_HOOK=true nix develop ~/.config/nix"
 
-Write-Progress -Activity "Setup Complete" -Status "Launching WSL..." -Completed
+Write-Progress -Activity "Setup Complete" -Status "Launching $distroName..." -Completed
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Yellow
 Write-Host ">>> NEXT STEP (INSIDE WSL):" -ForegroundColor Yellow
@@ -54,4 +54,5 @@ Write-Host ">>> Make sure to do the following to enter your Nix environment:" -F
 Write-Host ">>>     nix develop ~/.config/nix" -ForegroundColor Yellow
 Write-Host "================================================================" -ForegroundColor Yellow
 Write-Host ""
-wsl
+
+wsl -d $distroName

@@ -113,8 +113,8 @@
             if [ ! -d "$DOTFILES_DIR" ]; then
               echo "Cloning dotfiles..."
 
-              if [ $WITH_GIT_PUSH == "true" ]; then
-                echo "[WITH_GIT_PUSH=true] Cloning via SSH..."
+              if [ "$WITH_GIT_PUSH" = "true" ]; then
+                echo "[WITH_GIT_PUSH = true] Cloning via SSH..."
 
                 if [ ! -f ~/.ssh/id_ed25519 ]; then
                   echo "SSH key not found at ~/.ssh/id_ed25519."
@@ -132,7 +132,7 @@
                 # Clone dotfiles repo recursively with SSH
                 git clone --recurse-submodules git@github.com:MohitRane8/dotfiles "$DOTFILES_DIR"
               else
-                echo "[WITH_GIT_PUSH=false] Cloning via HTTPS..."
+                echo "[WITH_GIT_PUSH = false] Cloning via HTTPS..."
 
                 # Clone dotfiles repo with HTTPS
                 git clone https://github.com/MohitRane8/dotfiles "$DOTFILES_DIR"
@@ -140,7 +140,7 @@
 
                 # Rewrite .gitmodules entries from SSH to HTTPS
                 sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
-                
+
                 # Sync and init submodules
                 git submodule sync
                 git submodule update --init --recursive
@@ -157,13 +157,14 @@
             # Set ZSH as default shell
             export SHELL="${p.zsh}/bin/zsh"
 
-            # Only exec zsh if:
-            #  - we’re in an interactive terminal (so PowerShell automation doesn't get stuck)
-            #  - the current shell isn’t already zsh
-            if [[ -t 1 && "$?" -eq 0 && "$_" != "$SHELL" ]]; then
+            # Enter zsh as long as exit hook isn't set
+            if [ "$EXIT_AFTER_HOOK" == "true" ]; then
+              # Exit out of bash shell
+              exit
+            else
+              # Enter zsh shell
               exec ${p.zsh}/bin/zsh -il
             fi
-          '';
         };
       });
 }
