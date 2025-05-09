@@ -1,58 +1,59 @@
 $ErrorActionPreference = "Stop"
 
-$destination = "C:\WSL\Ubuntu24"
-$tarballName = "ubuntu-base-24.04.2-base-amd64.tar.gz"
-$tarballPath = "$destination\$tarballName"
-$distroName = "Nixbuntu"
-$totalSteps = 6
+$distroName         = "Nixbuntu"
+$tarballUrl         = "https://cdimage.ubuntu.com/ubuntu-base/releases/noble/release/ubuntu-base-24.04.2-base-amd64.tar.gz"
+$importDestination  = "C:\WSL\Ubuntu24"
 
-function Show-StepProgress {
-    param (
-        [int]$step,
-        [string]$activity,
-        [string]$status
-    )
-    Write-Progress -Activity $activity -Status $status -PercentComplete (($step / $totalSteps) * 100)
-    Write-Host "`n[$step/$totalSteps] $status" -ForegroundColor Cyan
+$tempDir            = [System.IO.Path]::GetTempPath()
+$tarballPath        = Join-Path $tempDir ([System.IO.Path]::GetFileName($tarballUrl))
+$setupScriptPath    = Join-Path $tempDir "setup-nixbuntu.sh"
+$flakePath          = Join-Path $tempDir "flake.nix"
+
+# WSL-friendly paths
+$setupScriptPathWSL = ($setupScriptPath -replace '\\','/' -replace '^([A-Za-z]):','/mnt/$1').ToLower()
+$flakePathWSL       = ($flakePath -replace '\\','/' -replace '^([A-Za-z]):','/mnt/$1').ToLower()
+
+$totalSteps         = 5
+function Show-Step {
+    param ([int]$step, [string]$msg)
+    Write-Host "`n[$step/$totalSteps] $msg" -ForegroundColor Cyan
 }
 
-Show-StepProgress 1 "Setting up WSL environment" "Creating directory for WSL..."
-New-Item -ItemType Directory -Path $destination -Force | Out-Null
+Show-Step 1 "Creating directory for WSL..."
+New-Item -ItemType Directory -Path $importDestination -Force | Out-Null
 
-Show-StepProgress 2 "Setting up WSL environment" "Downloading Ubuntu rootfs..."
-if (-Not (Test-Path $tarballPath)) {
-    Invoke-WebRequest `
-        -Uri "https://cdimage.ubuntu.com/ubuntu-base/releases/noble/release/$tarballName" `
-        -OutFile $tarballPath `
-        -UseBasicParsing
+Show-Step 2 "Downloading Ubuntu rootfs..."
+if (-not (Test-Path $tarballPath)) {
+    Invoke-WebRequest $tarballUrl -OutFile $tarballPath -UseBasicParsing
 } else {
-    Write-Host "Tarball already exists at $tarballPath. Skipping download." -ForegroundColor Yellow
+    Write-Host "Tarball already exists. Skipping download." -ForegroundColor Yellow
 }
 
-Show-StepProgress 3 "Setting up WSL environment" "Importing Ubuntu rootfs..."
-wsl --import $distroName $destination $tarballPath --version 2
-wsl --set-default $distroName
+Show-Step 3 "Importing Ubuntu rootfs..."
+wsl --import $distroName $importDestination $tarballPath --version 2
 
-Show-StepProgress 4 "Setting up WSL environment" "Installing minimal apt packages..."
-wsl -d $distroName -- bash -c "apt update && DEBIAN_FRONTEND=noninteractive apt install -y sudo vim wget xz-utils openssh-client ca-certificates"
+Show-Step 4 "Running $distroName setup script..."
+Invoke-WebRequest "https://raw.githubusercontent.com/MohitRane8/dotfiles/main/wsl/setup-nixbuntu.sh" -OutFile $setupScriptPath
+wsl -d $distroName -- bash -c "bash '$setupScriptPathWSL'"
+wsl -t $distroName
 
-Show-StepProgress 5 "Setting up WSL environment" "Running Nixbuntu setup script..."
-wsl -d $distroName -- bash -c "wget https://raw.githubusercontent.com/MohitRane8/dotfiles/main/wsl/setup-nixbuntu.sh -O /first-run.sh"
-wsl -d $distroName -- chmod +x /first-run.sh
-wsl -d $distroName -- bash /first-run.sh
-wsl -d $distroName -- rm -f /first-run.sh
-
-Show-StepProgress 6 "Setting up WSL environment" "Installing Nix packages..."
-wsl --shutdown
+Show-Step 5 "Installing Nix packages..."
+Invoke-WebRequest "https://raw.githubusercontent.com/MohitRane8/dotfiles/main/wsl/flake.nix" -OutFile $flakePath
+wsl -d $distroName -- bash -c "mkdir -p ~/.config/nix && mv '$flakePathWSL' ~/.config/nix/"
 wsl -d $distroName -- bash -c "sudo /nix/var/nix/profiles/default/bin/nix-daemon & disown; until pgrep -x nix-daemon > /dev/null; do sleep 0.5; done; source /etc/profile; EXIT_AFTER_HOOK=true nix develop ~/.config/nix"
 
-Write-Progress -Activity "Setup Complete" -Status "Launching $distroName..." -Completed
+# Final output
+Write-Host "`n`n🎉  Setup Complete for $distroName!" -ForegroundColor Green
+Write-Host "------------------------------------------------------------" -ForegroundColor Yellow
+Write-Host "To set it as your default WSL distro:" -ForegroundColor Yellow
+Write-Host "  wsl --set-default $distroName" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "================================================================" -ForegroundColor Yellow
-Write-Host ">>> NEXT STEP (INSIDE WSL):" -ForegroundColor Yellow
-Write-Host ">>> Make sure to do the following to enter your Nix environment:" -ForegroundColor Yellow
-Write-Host ">>>     nix develop ~/.config/nix" -ForegroundColor Yellow
-Write-Host "================================================================" -ForegroundColor Yellow
+Write-Host "To enter the distro if it's NOT the default:" -ForegroundColor Yellow
+Write-Host "  wsl -d $distroName" -ForegroundColor Cyan
 Write-Host ""
-
-wsl -d $distroName
+Write-Host "To enter the distro if it IS the default:" -ForegroundColor Yellow
+Write-Host "  wsl" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Inside the distro, to enter your Nix environment:" -ForegroundColor Yellow
+Write-Host "  nix develop ~/.config/nix" -ForegroundColor Cyan
+Write-Host "------------------------------------------------------------`n" -ForegroundColor Yellow

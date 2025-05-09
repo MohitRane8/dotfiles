@@ -43,6 +43,12 @@ if ! grep -Fxq 'cd ~' /home/"$USERNAME"/.bashrc; then
   echo 'cd ~' >> /home/"$USERNAME"/.bashrc
 fi
 
+# Install bare minimum apt packages
+# Essentials: sudo, vim
+# For Nix: wget, xz-utils
+apt update
+DEBIAN_FRONTEND=noninteractive apt install -y sudo vim wget xz-utils openssh-client ca-certificates
+
 # Install Nix
 echo "Installing Nix (daemon mode)"
 wget -qO- https://nixos.org/nix/install | bash -s -- --daemon
