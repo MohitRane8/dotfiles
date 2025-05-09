@@ -13,7 +13,7 @@ $flakePath          = Join-Path $tempDir "flake.nix"
 $setupScriptPathWSL = ($setupScriptPath -replace '\\','/' -replace '^([A-Za-z]):','/mnt/$1').ToLower()
 $flakePathWSL       = ($flakePath -replace '\\','/' -replace '^([A-Za-z]):','/mnt/$1').ToLower()
 
-$totalSteps         = 5
+$totalSteps = 5
 function Show-Step {
     param ([int]$step, [string]$msg)
     Write-Host "`n[$step/$totalSteps] $msg" -ForegroundColor Cyan
@@ -43,7 +43,7 @@ wsl -d $distroName -- bash -c "mkdir -p ~/.config/nix && mv '$flakePathWSL' ~/.c
 wsl -d $distroName -- bash -c "sudo /nix/var/nix/profiles/default/bin/nix-daemon & disown; until pgrep -x nix-daemon > /dev/null; do sleep 0.5; done; source /etc/profile; EXIT_AFTER_HOOK=true nix develop ~/.config/nix"
 
 # Final output
-Write-Host "`n`n🎉  Setup Complete for $distroName!" -ForegroundColor Green
+Write-Host "`n`n>>> $distroName bootstrapped. You’re officially in dev mode. <<<" -ForegroundColor Green
 Write-Host "------------------------------------------------------------" -ForegroundColor Yellow
 Write-Host "To set it as your default WSL distro:" -ForegroundColor Yellow
 Write-Host "  wsl --set-default $distroName" -ForegroundColor Cyan
