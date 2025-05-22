@@ -21,15 +21,176 @@ cmd mkfile ${{
   $EDITOR $ans
 }}
 
-# Archive bindings
-cmd unarchive ${{
-  case "$f" in
-      *.zip) unzip "$f" ;;
-      *.tar.gz) tar -xzvf "$f" ;;
-      *.tar.bz2) tar -xjvf "$f" ;;
-      *.tar) tar -xvf "$f" ;;
-      *) echo "Unsupported format" ;;
-  esac
+# Function: archive_extract
+# This function extracts archive files in the lf file manager.
+# - If no files are selected, it extracts the file under the cursor in the same directory.
+# - If one or more files are selected, it extracts all selected files in the current directory.
+# - Displays a table with file names and sizes, along with the total size.
+# - Prompts the user once to confirm extraction for all files.
+cmd archive_extract ${{
+    tput bold
+    set -f
+
+    # Determine files to extract
+    if [ -z "$fs" ]; then
+        # No files selected, extract the file under the cursor
+        files="$fx"
+    else
+        # Files are selected, extract all selected files
+        files="$fs"
+    fi
+
+    # Display file table
+    total_size=0
+    printf "\n%-5s | %-10s | %-40s\n" "No." "Size" "File Name"
+    printf "%-5s | %-10s | %-40s\n" "-----" "----------" "----------------------------------------"
+
+    i=1
+    for file in $files; do
+        size=$(du -h "$file" | cut -f1)                             # Get human-readable file size
+        total_size=$((total_size + $(du -b "$file" | cut -f1)))     # Get total size in bytes
+        printf "%-5s | %-10s | %-40s\n" "$i" "$size" "$file"
+        i=$((i + 1))
+    done
+
+    # Print total size in human-readable format
+    total_size_hr=$(numfmt --to=iec-i --suffix=B $total_size)
+    printf "\nTotal Size: %s\n\n" "$total_size_hr"
+
+    echo "Extract all files? [y/N] "
+    read ans
+
+    if [ "$ans" = "y" ]; then
+        for file in $files; do
+            case $file in
+                *.zip)       unzip "$file"       ;;
+                *.7z)        7z x "$file"        ;;
+                *.tar)       tar xf "$file"      ;;
+                *.tar.gz)    tar xzf "$file"     ;;
+                *.tgz)       tar xzf "$file"     ;;
+                *.tar.bz2)   tar xjf "$file"     ;;
+                *.tbz2)      tar xjf "$file"     ;;
+                *.tar.xz)    tar xf "$file"      ;;
+                *.gz)        gunzip "$file"      ;;
+                *.bz2)       bunzip2 "$file"     ;;
+                *.rar)       unrar e "$file"     ;;
+                *)           printf "Unsupported format: %s\n" "$file" ;;
+            esac
+        done
+    else
+        echo "Extraction canceled"
+        echo
+    fi
+}}
+
+# Function: archive_create
+cmd archive_create ${{
+    tput bold
+    set -f
+
+    # Determine files to archive
+    if [ -z "$fs" ]; then
+        # No files selected, archive the file under the cursor
+        files="$fx"
+    else
+        # Files are selected, archive all selected files
+        files="$fs"
+    fi
+
+    # Display file table
+    total_size=0
+    printf "\n%-5s | %-10s | %-40s\n" "No." "Size" "File Name"
+    printf "%-5s | %-10s | %-40s\n" "-----" "----------" "----------------------------------------"
+
+    i=1
+    for file in $files; do
+        size=$(du -h "$file" | cut -f1)                             # Get human-readable file size
+        total_size=$((total_size + $(du -b "$file" | cut -f1)))     # Get total size in bytes
+        printf "%-5s | %-10s | %-40s\n" "$i" "$size" "$file"
+        i=$((i + 1))
+    done
+
+    # Print total size in human-readable format
+    total_size_hr=$(numfmt --to=iec-i --suffix=B $total_size)
+    printf "\nTotal Size: %s\n\n" "$total_size_hr"
+
+    # Show supported formats
+    echo "Supported formats:"
+    echo "  zip       - .zip"
+    echo "  7z        - .7z"
+    echo "  tar       - .tar"
+    echo "  tar.gz    - .tar.gz"
+    echo "  tgz       - .tgz (same as tar.gz)"
+    echo "  tar.bz2   - .tar.bz2"
+    echo "  tbz2      - .tbz2 (same as tar.bz2)"
+    echo "  tar.xz    - .tar.xz"
+    echo "  gz        - .gz (single file only)"
+    echo "  bz2       - .bz2 (single file only)"
+    echo "  rar       - .rar"
+    echo
+
+    first_file=$(echo "$files" | head -n 1)
+    default_name=$(basename "$first_file")
+    default_name="${default_name%.*}"
+    read -p "Enter archive name (default: $default_name): " archive_name
+    archive_name="${archive_name:-$default_name}"
+
+    read -p "Enter archive format [zip/tar/tar.gz/tar.bz2/tar.xz/tgz/tbz2/gz/bz2/7z/rar] (default: zip): " format
+    format="${format:-zip}"
+
+    # Build full archive file name
+    case "$format" in
+        zip)            archive_file="$archive_name.zip" ;;
+        7z)             archive_file="$archive_name.7z" ;;
+        tar)            archive_file="$archive_name.tar" ;;
+        tar.gz|tgz)     archive_file="$archive_name.tar.gz" ;;
+        tar.bz2|tbz2)   archive_file="$archive_name.tar.bz2" ;;
+        tar.xz)         archive_file="$archive_name.tar.xz" ;;
+        gz)             archive_file="$archive_name.gz" ;;
+        bz2)            archive_file="$archive_name.bz2" ;;
+        rar)            archive_file="$archive_name.rar" ;;
+        *)              echo "Unsupported format."; exit 1 ;;
+    esac
+
+    echo
+    echo "Creating archive: $archive_file"
+    echo
+
+    # Validate format-specific requirements
+    case "$format" in
+        gz|bz2)
+            file_count=$(echo "$files" | wc -l)
+            if [ "$file_count" -ne 1 ]; then
+                echo "$format only supports single file compression."
+                exit 1
+            fi
+            ;;
+    esac
+
+    # Create archive
+    case "$format" in
+        7z)
+            7z a "$archive_file" $files ;;
+        zip)
+            zip -r "$archive_file" $files ;;
+        tar)
+            tar cf "$archive_file" $files ;;
+        tar.gz|tgz)
+            tar czf "$archive_file" $files ;;
+        tar.bz2|tbz2)
+            tar cjf "$archive_file" $files ;;
+        tar.xz)
+            tar cJf "$archive_file" $files ;;
+        gz)
+            gzip -c "$files" > "$archive_file" ;;
+        bz2)
+            bzip2 -c "$files" > "$archive_file" ;;
+        rar)
+            rar a "$archive_file" $files ;;
+    esac
+
+    echo "Archive created: $archive_file"
+    echo
 }}
 
 # Trash all selected files/directories
@@ -168,6 +329,17 @@ cmd copy_parent_dir_windows_path ${{
     fi
 }}
 
+# Zoxide - Jump to the specified directory interactively
+cmd zoxide_interactive_jump ${{
+    result="$(zoxide query -i | sed 's/\\/\\\\/g;s/"/\\"/g')"
+    lf -remote "send $id cd \"$result\""
+}}
+
+# Zoxide - Hook into lf's cd command to add the current directory to zoxide
+cmd on-cd &{{
+    zoxide add "$PWD"
+}}
+
 # Bindings
 map d
 map n
@@ -175,8 +347,9 @@ map w
 map f
 map b
 
-map au unarchive
-#map ae $wine "$f"
+# Archives
+map ae archive_extract
+map ac archive_create
 
 # Basic Functions
 map . set hidden!
@@ -192,6 +365,7 @@ map nd mkdir
 map ff :fzf_jump
 map fs :fzf_search
 #map f push :fzf<space>
+map zi :zoxide_interactive_jump
 map wo open_in_windows
 map wy copy_files_to_windows_clipboard
 map wp copy_parent_dir_windows_path

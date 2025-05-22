@@ -86,18 +86,43 @@ function set-prompt() {
   #
   # Top left:      Gray current directory.
   # Top right:     Gray time.
-  # Bottom left:   Prompt arrow: ❯, , 
+  # Bottom left:   Prompt arrow: ❯,, , , , , , , , , , ,󰘩 , , , , ,󰇛 ,󰵼 ,󰘧 ,󰽗 , , , , , , ,󰃚 ,󰃛 ,󰃜 ,󰞷 ,󱗼 ,󱗿 ,󰇘 ,󱗽 ,󱗾 ,󰇙 ,󰇜 ,󰇝 ,󰽤 ,󰤁 ,󰑂 󰑅 󰑀 ,󰐾 ,󰻂 , , , , , , , , 
   # Bottom right:
 
-  local top_left='%F{cyan}[%D{%H:%M}]%f %F{magenta}%2~%f'
-  # local top_right=''
-  local bottom_left='%F{yellow}%f '
-  # local bottom_right=''
+  # UTF symbols:
+  # 1. https://www.nerdfonts.com/cheat-sheet
+  # 2. https://shapecatcher.com/
+
+  # Original Style
+  # local top_left='%F{cyan}[%D{%H:%M}]%f %F{magenta}%2~%f'
+  # # local top_right=''
+  # local bottom_left='%F{yellow}%f '
+  # # local bottom_right=''
+
+  # Style 1
+  # local top_left='%F{#4978c4} %D{%H:%M}%f    %F{#9e4b44}%2~%f'
+  # local bottom_left='%F{#c4b049}-------  %f'
+
+  # Style 2
+  # local top_left='%F{#4978c4} %D{%H:%M}%f %F{#c4b049} %f %F{#9e4b44}%2~%f'
+  # local bottom_left='%F{#c4b049}-------  %f'
+  # local bottom_left='%F{#c4b049}-------  %f'
+
+  # Style 3
+  local top_left='%F{#4978c4}  %D{%H:%M}%f %F{#c4b049}󰇙 %f %F{#9e4b44}%2~%f'
+  local bottom_left='%F{#c4b049}󰇘 󰇘 󰇘 󰇘   %f'
+ 
 
   local REPLY
   fill-line "$top_left" "$top_right"
   PROMPT=$'\n'$REPLY$'\n'$bottom_left
   RPROMPT=$bottom_right
+  
+  # Set user input color
+  zle_highlight=( default:fg=yellow,bold )
+  # zle_highlight=( default:fg=185)
+  # zle_highlight=( default:fg=185,standout )
+  # zle_highlight=( default:fg=185,underline )
 }
 
 setopt no_prompt_{bang,subst} prompt_{cr,percent,sp}

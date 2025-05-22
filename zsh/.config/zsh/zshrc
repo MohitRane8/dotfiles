@@ -37,5 +37,8 @@ if [[ -n "$TMUX" && ! -f "${XDG_CACHE_HOME:-$HOME/.cache}/tmux_plugins_installed
   fi
 fi
 
+# Initialize zoxide
+eval "$(zoxide init zsh)"
+
 # cd to project directory
 # cd ~/
