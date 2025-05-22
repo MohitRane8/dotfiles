@@ -1,5 +1,5 @@
 {
-  description = "Dev shell with Neovim 0.10";
+  description = "Dev shell with Neovim 0.10.4";
 
   inputs = {
     # Main nixpkgs
@@ -8,8 +8,8 @@
 
     # Search packages at https://www.nixhub.io/
 
-    # Pin nixpkgs with Neovim 0.10
-    neovimPkgs.url = "github:nixos/nixpkgs/b60793b86201040d9dee019a05089a9150d08b5b"; # commit where neovim 0.10 is available
+    # Pin nixpkgs with Neovim 0.10.4
+    neovimPkgs.url = "github:nixos/nixpkgs/dd613136ee91f67e5dba3f3f41ac99ae89c5406b";
 
     # Use flake-utils to support multiple systems (optional but nice)
     flake-utils.url = "github:numtide/flake-utils";
@@ -36,12 +36,20 @@
           ];
         };
 
-        tmuxWithDeps = p.symlinkJoin {
-          name = "tmux-with-deps";
+        yaziWithDeps = p.symlinkJoin {
+          name = "yazi-with-deps";
           paths = [
-            p.tmux
-            p.tmuxPlugins.tpm
-            p.tmuxPlugins.resurrect
+            p.yazi
+            p.ffmpeg
+            p.p7zip
+            p.jq
+            p.poppler_utils
+            p.fd
+            p.ripgrep
+            p.fzf
+            p.zoxide
+            p.resvg
+            p.imagemagick
           ];
         };
       in {
@@ -78,7 +86,8 @@
             p.tmux
 
             # file manager
-            lfWithDeps
+            # lfWithDeps
+            yaziWithDeps
 
             # editor
             neovim.neovim
