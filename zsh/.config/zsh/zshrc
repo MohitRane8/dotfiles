@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Set command start time used to correctly start tracking time
+# Variable used in zsh-prompt to indicate time to execute the command
+CMD_START_TIME=$(date +%s.%N)
+
 # some useful options (man zshoptions)
 setopt extendedglob nomatch menucomplete
 setopt interactive_comments

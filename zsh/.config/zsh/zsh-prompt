@@ -4,128 +4,69 @@
 # 1. https://www.youtube.com/watch?v=p4h-5B8k2NY
 # 2. https://old.reddit.com/r/zsh/comments/cgbm24/multiline_prompt_the_missing_ingredient/
 
-# Example of two-line ZSH prompt with four components.
-#
-#   top-left                         top-right
-#   bottom-left                   bottom-right
-
-# Usage: prompt-length TEXT [COLUMNS]
-#
-# If you run `print -P TEXT`, how many characters will be printed
-# on the last line?
-#
-# Or, equivalently, if you set PROMPT=TEXT with prompt_subst
-# option unset, on which column will the cursor be?
-#
-# The second argument specifies terminal width. Defaults to the
-# real terminal width.
-#
-# The result is stored in REPLY.
-#
-# Assumes that `%{%}` and `%G` don't lie.
-#
-# Examples:
-#
-#   prompt-length ''            => 0
-#   prompt-length 'abc'         => 3
-#   prompt-length $'abc\nxy'    => 2
-#   prompt-length '󰅗 '          => 2
-#   prompt-length $'\t'         => 8
-#   prompt-length $'\u274E'     => 2
-#   prompt-length '%F{red}abc'  => 3
-#   prompt-length $'%{a\b%Gb%}' => 1
-#   prompt-length '%D'          => 8
-#   prompt-length '%1(l..ab)'   => 2
-#   prompt-length '%(!.a.)'     => 1 if root, 0 if not
-function prompt-length() {
-  emulate -L zsh
-  local -i COLUMNS=${2:-COLUMNS}
-  local -i x y=${#1} m
-  if (( y )); then
-    while (( ${${(%):-$1%$y(l.1.0)}[-1]} )); do
-      x=y
-      (( y *= 2 ))
-    done
-    while (( y > x + 1 )); do
-      (( m = x + (y - x) / 2 ))
-      (( ${${(%):-$1%$m(l.x.y)}[-1]} = m ))
-    done
-  fi
-  typeset -g REPLY=$x
-}
-
-# Usage: fill-line LEFT RIGHT
-#
-# Sets REPLY to LEFT<spaces>RIGHT with enough spaces in
-# the middle to fill a terminal line.
-function fill-line() {
-  emulate -L zsh
-  prompt-length $1
-  local -i left_len=REPLY
-  prompt-length $2 9999
-  local -i right_len=REPLY
-  local -i pad_len=$((COLUMNS - left_len - right_len - ${ZLE_RPROMPT_INDENT:-1}))
-  if (( pad_len < 1 )); then
-    # Not enough space for the right part. Drop it.
-    typeset -g REPLY=$1
-  else
-    local pad=${(pl.$pad_len.. .)}  # pad_len spaces
-    typeset -g REPLY=${1}${pad}${2}
-  fi
-}
-
-# Sets PROMPT and RPROMPT.
-#
-# Requires: prompt_percent and no_prompt_subst.
 function set-prompt() {
   emulate -L zsh
-
-  #
-  # ~/foo                     10:51
-  # 
-  #
-  # Top left:      Gray current directory.
-  # Top right:     Gray time.
-  # Bottom left:   Prompt arrow: ❯,, , , , , , , , , , ,󰘩 , , , , ,󰇛 ,󰵼 ,󰘧 ,󰽗 , , , , , , ,󰃚 ,󰃛 ,󰃜 ,󰞷 ,󱗼 ,󱗿 ,󰇘 ,󱗽 ,󱗾 ,󰇙 ,󰇜 ,󰇝 ,󰽤 ,󰤁 ,󰑂 󰑅 󰑀 ,󰐾 ,󰻂 , , , , , , , , 
-  # Bottom right:
 
   # UTF symbols:
   # 1. https://www.nerdfonts.com/cheat-sheet
   # 2. https://shapecatcher.com/
 
-  # Original Style
-  # local top_left='%F{cyan}[%D{%H:%M}]%f %F{magenta}%2~%f'
-  # # local top_right=''
-  # local bottom_left='%F{yellow}%f '
-  # # local bottom_right=''
+  # Prompt arrow ideas: ❯,, , , , , , , , , , ,󰘩 , , , , ,󰇛 ,󰵼 ,󰘧 ,󰽗 , , , , , , ,󰃚 ,󰃛 ,󰃜 ,󰞷 ,󱗼 ,󱗿 ,󰇘 ,󱗽 ,󱗾 ,󰇙 ,󰇜 ,󰇝 ,󰽤 ,󰤁 ,󰑂 󰑅 󰑀 ,󰐾 ,󰻂 , , , , , , , , 
 
-  # Style 1
-  # local top_left='%F{#4978c4} %D{%H:%M}%f    %F{#9e4b44}%2~%f'
-  # local bottom_left='%F{#c4b049}-------  %f'
+  # Set the prompt
 
-  # Style 2
-  # local top_left='%F{#4978c4} %D{%H:%M}%f %F{#c4b049} %f %F{#9e4b44}%2~%f'
-  # local bottom_left='%F{#c4b049}-------  %f'
-  # local bottom_left='%F{#c4b049}-------  %f'
+  # Style 1: Single pill
+  # 19:23  2.141s  ~/dotfiles
+  #  ls
+  # PROMPT=$'\n'"%F{68}%f%K{68}%F{234}%D{%H:%M} %k%f%K{108}%F{234} ${LAST_CMD_DURATION} %k%f%K{131}%F{234} %2~%k%f%F{131}%f"$'\n'"%F{yellow} %f"
 
-  # Style 3
-  local top_left='%F{#4978c4}  %D{%H:%M}%f %F{#c4b049}󰇙 %f %F{#9e4b44}%2~%f'
-  local bottom_left='%F{#c4b049}󰇘 󰇘 󰇘 󰇘   %f'
- 
+  # Style 2: Separate pills  
+  # 19:32 998ms ~/dotfiles
+  #  ls
+  # PROMPT=$'\n'"%F{68}%f%K{68}%F{234}%D{%H:%M}%k%f%F{68}%f %F{108}%f%K{108}%F{234}${LAST_CMD_DURATION}%k%f%F{108}%f %F{131}%f%K{131}%F{234}%2~%k%f%F{131}%f"$'\n'"%F{yellow} %f"
 
-  local REPLY
-  fill-line "$top_left" "$top_right"
-  PROMPT=$'\n'$REPLY$'\n'$bottom_left
-  RPROMPT=$bottom_right
-  
+  # Style 3: Single pill (like style 1)
+  # PROMPT=$'\n'"%F{#2f4f4f}%f%K{#2f4f4f}%F{#f5deb3}%D{%H:%M}%f %F{#ffc0cb}|%f %F{#afeeee}${LAST_CMD_DURATION}%f %F{#ffc0cb}|%f %F{#adff2f}%2~%f%k%F{#2f4f4f}%f"$'\n'"%F{yellow} %f"
+  PROMPT=$'\n'"%F{#2f4f4f}%f%K{#2f4f4f}%F{#40e0d0}%D{%H:%M}%f %F{#f0ffff}|%f %F{#adff2f}%2~%f%k%F{#2f4f4f}%f"$'\n'"%F{yellow} %f"
+
   # Set user input color
-  zle_highlight=( default:fg=yellow,bold )
-  # zle_highlight=( default:fg=185)
-  # zle_highlight=( default:fg=185,standout )
-  # zle_highlight=( default:fg=185,underline )
+  # additional options: bold, underline, standout
+  zle_highlight=( default:fg=226,bold )
+}
+
+precmd() {
+  # if [[ -n $CMD_START_TIME ]]; then
+  #   local end=$(date +%s.%N)
+  #
+  #   if [[ $CMD_START_TIME =~ '^[0-9]+\.[0-9]+$' && $end =~ '^[0-9]+\.[0-9]+$' ]]; then
+  #     local duration=$(echo "$end - $CMD_START_TIME" | bc -l)
+  #
+  #     local formatted=""
+  #     if (( $(echo "$duration < 1" | bc -l) )); then
+  #       local ms=$(printf "%.0f" "$(echo "$duration * 1000" | bc -l)")
+  #       formatted="${ms}ms"
+  #     else
+  #       formatted=$(printf "%.2fs" "$duration")
+  #     fi
+  #
+  #     LAST_CMD_DURATION="${formatted}"
+  #   else
+  #     LAST_CMD_DURATION=""
+  #   fi
+  # else
+  #   LAST_CMD_DURATION=""
+  # fi
+
+  # Apply the prompt
+  set-prompt
+}
+
+preexec() {
+  # CMD_START_TIME=$(date +%s.%N)
 }
 
 setopt no_prompt_{bang,subst} prompt_{cr,percent,sp}
 autoload -Uz add-zsh-hook
-add-zsh-hook precmd set-prompt
+add-zsh-hook precmd precmd
+add-zsh-hook preexec preexec
 
