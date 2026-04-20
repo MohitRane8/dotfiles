@@ -44,5 +44,8 @@ fi
 # Initialize zoxide
 eval "$(zoxide init zsh)"
 
+# Initialize Atuin
+eval "$(atuin init zsh)"
+
 # cd to project directory
 # cd ~/

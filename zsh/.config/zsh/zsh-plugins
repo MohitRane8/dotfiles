@@ -1,2 +1,5 @@
 # Vim mode
 source $ZDOTDIR/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+
+# zsh-fzf-history-search
+source $ZDOTDIR/plugins/zsh-fzf-history-search/zsh-fzf-history-search.plugin.zsh

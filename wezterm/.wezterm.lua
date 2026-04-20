@@ -19,8 +19,8 @@ config.check_for_updates = false
 -- config.font = wezterm.font('Consolas')
 config.font = wezterm.font('mononoki Bold')
 -- config.font = wezterm.font('mononoki Regular')
-config.font_size = 12
--- config.line_height = 1.1
+config.font_size = 11
+config.line_height = 1.1
 
 -- For example, changing the color scheme:
 -- config.color_scheme = 'Gruvbox dark, hard (base16)'
@@ -30,12 +30,13 @@ config.font_size = 12
 -- config.color_scheme = 'Chalk (dark) (terminal.sexy)'
 -- config.color_scheme = 'dayfox'
 -- config.color_scheme = 'darkmoss (base16)'
-config.color_scheme = 'Derp (terminal.sexy)'
+-- config.color_scheme = 'Derp (terminal.sexy)'
 -- config.color_scheme = 'Digerati (terminal.sexy)'
 -- config.color_scheme = 'Dotshare (terminal.sexy)'
 -- config.color_scheme = 'terafox'
 -- config.color_scheme = 'duckbones'
 -- config.color_scheme = 'Night Owl (Gogh)'
+config.color_scheme = 'Gooey (Gogh)'
 
 
 config.default_cursor_style = 'BlinkingBlock'
@@ -70,6 +71,17 @@ config.keys = {
     mods = 'SHIFT|CTRL',
     action = wezterm.action.ToggleFullScreen,
   },
+  {
+    key = 'Enter',
+    mods = 'CTRL',
+    action = wezterm.action.SendString '\n',
+  },
+  -- Multi-line input for GitHub Copilot CLI (Shift+Enter for new line)
+  {
+    key = 'Enter',
+    mods = 'SHIFT',
+    action = wezterm.action.SendString '\x1bOM',
+  },
 }
 
 -- Select in wezterm with mouse to copy to clipboard
@@ -99,14 +111,16 @@ config.use_fancy_tab_bar = false
 config.warn_about_missing_glyphs = false
 
 -- background
--- config.window_background_opacity = 1
--- config.window_background_image = "c:/users/mrane/OneDrive - Marvell/Pictures/gradient_1.png"
+config.window_background_opacity = 1
+-- config.window_background_image = "c:/users/mrane/OneDrive - Marvell/Pictures/wall_12.jpg"
 -- config.window_background_image_hsb = {
 --   brightness = 0.17,
 --   hue = 1.0,
 --   saturation = 0.7,
 -- }
 
+-- config.win32_system_backdrop = 'Disable'
+config.win32_system_backdrop = 'Mica'
 -- and finally, return the configuration to wezterm
 return config
 

@@ -18,6 +18,7 @@ cmd mkdir ${{
 cmd mkfile ${{
   printf "File Name: "
   read ans
+  touch "$ans"
   $EDITOR $ans
 }}
 
