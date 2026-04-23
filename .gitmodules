@@ -1,9 +1,12 @@
-[submodule "nvim/.config/nvim"]
-	path = nvim/.config/nvim
-	url = https://github.com/MohitRane8/nvim-basic-ide.git
 [submodule "zsh/.config/zsh/plugins/zsh-vi-mode"]
 	path = zsh/.config/zsh/plugins/zsh-vi-mode
 	url = https://github.com/jeffreytse/zsh-vi-mode.git
+[submodule "zsh/.config/zsh/plugins/zsh-fzf-history-search"]
+	path = zsh/.config/zsh/plugins/zsh-fzf-history-search
+	url = https://github.com/joshskidmore/zsh-fzf-history-search.git
 [submodule "tmux/.config/tmux/plugins/tpm"]
 	path = tmux/.config/tmux/plugins/tpm
 	url = https://github.com/tmux-plugins/tpm
+[submodule "nvim/.config/nvim"]
+	path = nvim/.config/nvim
+	url = https://github.com/MohitRane8/nvim-basic-ide.git

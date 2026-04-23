@@ -4,7 +4,11 @@
 
 - [Architecture & Features](#architecture--features)
 - [Ubuntu OS Setup](#ubuntu-os-setup)
+  - [Bootstrap Packages](#bootstrap-packages)
   - [Terminal Setup](#terminal-setup)
+  - [Desktop Environment](#desktop-environment)
+  - [Keyboard Modifications](#keyboard-modifications)
+  - [Fonts](#fonts)
   - [Flatpaks](#flatpaks)
 - [WSL Setup](#wsl-setup)
   - [Terminal Setup](#terminal-setup-1)
@@ -24,6 +28,7 @@
     - [Updating Package Versions](#updating-package-versions)
     - [Upgrading Home Manager Release](#upgrading-home-manager-release)
 - [Tips](#tips)
+  - [Ubuntu OS](#ubuntu-os)
   - [WSL](#wsl)
 - [Backup & Restore](#backup--restore)
   - [WSL](#wsl-1)
@@ -49,7 +54,76 @@ This setup uses **Nix Home Manager** exclusively to manage *packages* and global
 
 ## Ubuntu OS Setup
 
+### Bootstrap Packages
+
+A fresh Ubuntu 24.04 install is missing a couple of tools needed to run the rest of this guide (notably the Nix installer and the dotfiles clone). Install them via apt before doing anything else:
+```bash
+sudo apt update
+sudo apt install -y git curl
+```
+
+> **Note:** These are the only apt packages you need to install by hand for the bootstrap. Once Home Manager is up, it provides its own `git` and `curl` (and they win on `$PATH` since `~/.nix-profile/bin` is prepended). It is recommended to **leave the apt versions in place** — they're tiny, and system services and root-run scripts that don't see your Nix profile may still rely on them.
+
 ### Terminal Setup
+
+1. **Install [WezTerm](https://wezterm.org/install/linux.html#__tabbed_1_3)** via the official apt repository. apt is preferred over Home Manager here because the apt package handles desktop integration (`.desktop` entry, MIME types, font discovery) out of the box.
+
+The `wezterm.lua` config is symlinked into place by Stow during the Nix Home Manager Setup steps below — no manual copy needed on Ubuntu.
+
+### Desktop Environment
+
+Install GNOME Tweaks for fine-grained desktop and shell customization:
+```bash
+sudo apt install -y gnome-tweaks
+```
+
+### Keyboard Modifications
+
+#### Caps Lock / Escape Remap (keyd)
+
+[keyd](https://github.com/rvaiya/keyd) is a low-level key remapping daemon that runs as a systemd service, so the remaps work uniformly across X11, Wayland, the TTY, and the login screen.
+
+1. **Install keyd** from the maintainer's PPA:
+   ```bash
+   sudo add-apt-repository -y ppa:keyd-team/ppa
+   sudo apt update
+   sudo apt install -y keyd
+   sudo systemctl enable --now keyd
+   ```
+
+2. **Deploy the config**
+   The reference config lives in this repo at `keyd/etc/keyd/default.conf` (Caps Lock acts as Escape when tapped and Ctrl when held; Escape becomes Caps Lock). It is intentionally **not** stowed because `/etc/keyd/` is root-owned. Copy it manually and reload the daemon:
+   ```bash
+   sudo cp ~/dotfiles/keyd/etc/keyd/default.conf /etc/keyd/default.conf
+   sudo keyd reload
+   ```
+   Re-run both commands whenever the reference file changes.
+
+#### Key Repeat Rate
+
+Speed up GNOME's keyboard repeat (lower `delay` and `repeat-interval` than the defaults expose in Settings):
+```bash
+gsettings set org.gnome.desktop.peripherals.keyboard delay 180
+gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 20
+```
+These values are stored per-user in dconf and persist across reboots.
+
+### Fonts
+
+Install [Mononoki Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases) (used by WezTerm — see `wezterm/.config/wezterm/wezterm.lua`) and [Inter Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases) (used by GNOME / Tweaks):
+```bash
+mkdir -p ~/.local/share/fonts && cd ~/.local/share/fonts
+curl -fLO https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Mononoki.zip
+curl -fLO https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Inter.zip
+unzip -o Mononoki.zip -d Mononoki
+unzip -o Inter.zip -d Inter
+rm Mononoki.zip Inter.zip
+fc-cache -fv
+```
+Verify the fonts are registered:
+```bash
+fc-list | grep -iE 'mononoki|inter'
+```
 
 ### Flatpaks
 
@@ -88,6 +162,8 @@ flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flat
 The following are some useful GUI applications that can be installed on the system via Flatpak:
 
 ```text-plain
+flatpak install flathub org.mozilla.firefox
+flatpak install flathub org.vscodium.codium
 flatpak install flathub com.github.tchx84.Flatseal
 flatpak install flathub com.mattjakeman.ExtensionManager
 flatpak install flathub com.valvesoftware.Steam
@@ -112,7 +188,7 @@ flatpak install flathub org.localsend.localsend_app
 
 4. **Open WezTerm**, confirm WSL starts automatically, and pin it to the taskbar.
 
-The `.wezterm.lua` config file is copied to the Windows home directory in setup step 10.
+The `wezterm.lua` config file is copied to the Windows home directory in setup step 10.
 
 ### Distribution Setup
 
@@ -222,8 +298,14 @@ WSL2 auto-generates `/etc/resolv.conf` pointing to its internal DNS relay (`10.2
    Use Nix to ephemerally run Stow and link the dotfiles:
    ```bash
    cd ~/dotfiles
-   nix shell nixpkgs\#stow -c stow zsh tmux lf nvim htop home-manager
+   nix shell nixpkgs\#stow -c stow home-manager zsh tmux lf nvim htop
    ```
+
+   On **Ubuntu OS**, also stow `wezterm` so the WezTerm config is picked up from `~/.config/wezterm/wezterm.lua`:
+   ```bash
+   nix shell nixpkgs\#stow -c stow wezterm
+   ```
+   On WSL, the WezTerm config lives on the Windows side instead and is copied over manually in step 10.
 
 6. **Verify Release Version**
    Review the checklist at the top of `home-manager/.config/home-manager/flake.nix` and ensure `nixpkgs.url`, `home-manager.url`, and `stateVersion` reflect the latest stable Home Manager release. The `nix run` command in the next step must also reference the same release branch. If any values were updated, stage the changes before proceeding:
@@ -259,11 +341,12 @@ WSL2 auto-generates `/etc/resolv.conf` pointing to its internal DNS relay (`10.2
    ```
 
 10. **Copy Windows-side configs (WSL only)**
-    `.wslconfig` and `.wezterm.lua` must live in the Windows user home directory:
+    `.wslconfig` and the WezTerm config must live in the Windows user home directory. The WezTerm config is checked in at `wezterm/.config/wezterm/wezterm.lua` (so that `stow wezterm` works on native Ubuntu); on Windows it is copied to `~/.wezterm.lua`, which WezTerm reads from the Windows user home:
     ```bash
-    cp ~/dotfiles/wsl/.wslconfig ~/dotfiles/wezterm/.wezterm.lua /mnt/c/Users/$WINUSERNAME/
+    cp ~/dotfiles/wsl/.wslconfig /mnt/c/Users/$WINUSERNAME/
+    cp ~/dotfiles/wezterm/.config/wezterm/wezterm.lua /mnt/c/Users/$WINUSERNAME/.wezterm.lua
     ```
-    Re-run this after modifying either file. Restart WSL (`wsl --shutdown`) for `.wslconfig` changes to take effect.
+    Re-run these after modifying either file. Restart WSL (`wsl --shutdown`) for `.wslconfig` changes to take effect.
 
     > **Note:** Review `wsl/.wslconfig` before copying — `memory` limits how much RAM the WSL2 VM can use and `swap` sets the swap file size. The checked-in values (20GB memory, 8GB swap) suit a 32GB machine; adjust based on total system RAM.
 
@@ -283,20 +366,27 @@ The environment is ready to use. The following sections are optional:
 
 ## Enable Git Push (Owner Only)
 
-1. **Generate SSH Key**
+1. **Set Git Identity**
+   Required before any commit will succeed. Use the same email that's attached to your GitHub account so commits are attributed correctly:
    ```bash
-   ssh-keygen -t ed25519 -C "email@example.com"
+   git config --global user.email "you@example.com"
+   git config --global user.name  "Your Name"
+   ```
+
+2. **Generate SSH Key**
+   ```bash
+   ssh-keygen -t ed25519 -C "you@example.com"
    ```
    *Add the contents of `~/.ssh/id_ed25519.pub` to GitHub: Settings → SSH and GPG keys.*
 
-2. **Add Key to SSH Agent (Optional)**
+3. **Add Key to SSH Agent (Optional)**
    If a passphrase is set and shouldn't be typed every time a push happens, add the key to the agent. *(Note: The agent resets when WSL/Ubuntu restarts; this can be automated later in `.zshrc` if desired.)*
    ```bash
    eval "$(ssh-agent -s)"
    ssh-add ~/.ssh/id_ed25519
    ```
 
-3. **Switch Remotes to SSH**
+4. **Switch Remotes to SSH**
    ```bash
    # Main dotfiles repo
    git -C ~/dotfiles remote set-url origin git@github.com:MohitRane8/dotfiles.git
@@ -386,6 +476,18 @@ home-manager switch --flake ~/.config/home-manager\#$USER-wsl
 `home.nix` does not need release-related changes. `stateVersion` in `flake.nix` is a compatibility flag — on an existing machine, leave it as-is. On a fresh install, set it to match the new release. The first-time setup command in step 7 also references `release-25.11`, but that command is only used once and does not affect subsequent `home-manager switch` calls.
 
 ## Tips
+
+### Ubuntu OS
+
+#### Inspecting Manually-Installed apt Packages
+
+After running through Ubuntu OS Setup, the `git`, `curl`, `wezterm`, `gnome-tweaks`, `keyd`, `flatpak`, etc. packages are the only things installed via apt — everything else comes from Home Manager. Two commands help audit what's actually on the system:
+
+- **`apt-mark showmanual`** — lists every package marked as manually installed (i.e., not pulled in only as a dependency). It includes packages that ship preinstalled on the Ubuntu image, so the list is longer than what you personally installed.
+- **`grep "Commandline: apt install" /var/log/apt/history.log`** — replays only the `apt install` commands you actually typed (along with their flags). Useful for reconstructing what was installed by hand, especially after a long-lived install. Older entries roll into rotated logs (`/var/log/apt/history.log.*.gz`) — use `zgrep` to include those:
+  ```bash
+  zgrep "Commandline: apt install" /var/log/apt/history.log*
+  ```
 
 ### WSL
 
