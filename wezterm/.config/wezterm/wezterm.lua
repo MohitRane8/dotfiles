@@ -12,15 +12,20 @@ config.check_for_updates = false
 -- ============================================================================
 -- Fonts
 -- ============================================================================
--- The Mononoki Nerd Font registers under different family names depending on
--- the host OS, so pick the right one based on where wezterm is running:
+-- The Mononoki Nerd Font can register under different family names depending on
+-- the host OS. On native Linux, use regular mononoki for text and WezTerm's
+-- bundled Nerd Font Symbols fallback for icons; this keeps the larger symbol
+-- rendering that WezTerm had before GNOME Terminal needed a patched font.
 --   - Windows / WSL (wezterm runs on Windows): 'mononoki Bold'
---   - Native Linux (Ubuntu OS): 'mononoki'
-local font_name = 'mononoki'
+--   - Native Linux (Ubuntu OS): regular 'mononoki' + Nerd Font Symbols fallback
+local font = wezterm.font_with_fallback {
+  'mononoki',
+  { family = 'Nerd Font Symbols Font', scale = 1.2 },
+}
 if wezterm.target_triple:find('windows') then
-  font_name = 'mononoki Bold'
+  font = wezterm.font('mononoki Bold')
 end
-config.font = wezterm.font(font_name)
+config.font = font
 config.font_size = 11
 config.line_height = 1.1
 config.warn_about_missing_glyphs = false

@@ -21,7 +21,7 @@ The core philosophy of this setup is to achieve a stable, maintainable, and dete
 ```
 dotfiles/
 ├── home-manager/   # Nix flake & package list (stow target)
-├── zsh/            # Zsh config (.zshrc, aliases, plugins)
+├── zsh/            # Zsh config (.zshenv, zshrc, aliases, plugins)
 ├── nvim/           # Neovim config (git submodule)
 ├── tmux/           # Tmux config + TPM plugins (submodule)
 ├── lf/             # lf file manager config

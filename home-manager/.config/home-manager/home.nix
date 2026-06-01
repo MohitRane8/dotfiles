@@ -61,6 +61,9 @@ in
     python311Packages.pip            # package installer
     python311Packages.virtualenv     # virtual environment creator
     python311Packages.pynvim         # neovim Python integration
+    uv                               # fast Python project and package manager
+    direnv                           # directory-scoped environment loader
+    nix-direnv                       # efficient direnv integration for Nix flakes
     black                            # code formatter
     python311Packages.flake8         # linter
 
@@ -94,6 +97,10 @@ in
     xsel                             # X11 clipboard tool
     ffmpeg                           # Video and audio processing
   ]);
+
+  home.file.".config/direnv/direnvrc".text = ''
+    source ${pkgs.nix-direnv}/share/nix-direnv/direnvrc
+  '';
 
   programs.home-manager.enable = true;
 }

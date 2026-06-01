@@ -10,6 +10,9 @@
   - [Keyboard Modifications](#keyboard-modifications)
   - [Fonts](#fonts)
   - [Flatpaks](#flatpaks)
+  - [Visual Studio Code Native Tarball](#visual-studio-code-native-tarball)
+  - [Codex CLI](#codex-cli)
+  - [Agent Skills](#agent-skills)
 - [WSL Setup](#wsl-setup)
   - [Terminal Setup](#terminal-setup-1)
   - [Distribution Setup](#distribution-setup)
@@ -22,6 +25,8 @@
     - [How Home Manager Manages $PATH](#how-home-manager-manages-path)
     - [Nix Flakes and Git](#nix-flakes-and-git)
     - [Reproducibility (`flake.lock`)](#reproducibility-flakelock)
+    - [Global vs Project-Specific Environments](#global-vs-project-specific-environments)
+    - [Project Python Workflow (`nix develop` + `uv`)](#project-python-workflow-nix-develop--uv)
   - [Operations](#operations)
     - [Adding a Package](#adding-a-package)
     - [Removing a Package](#removing-a-package)
@@ -44,7 +49,7 @@ The core philosophy of this setup is to achieve a stable, maintainable, and dete
 
 ### Features
 
-This setup uses **Nix Home Manager** exclusively to manage *packages* and global tools, while keeping GNU **Stow** for managing the *dotfiles* configurations (`.zshrc`, `.tmux.conf`, etc.).
+This setup uses **Nix Home Manager** to manage most *packages* and global tools, while keeping GNU **Stow** for managing the *dotfiles* configurations (`.zshrc`, `.tmux.conf`, etc.). A few upstream-managed tools are documented exceptions where latest-release cadence or agent-specific wiring matters more than `flake.lock` pinning.
 
 - **`flake.nix`**: Defines inputs (package versions, home-manager version) and outputs (system configurations like WSL or native Ubuntu).
 - **`home.nix`**: The list of installed packages, including optional dependencies based on the environment (e.g., WSL vs Ubuntu).
@@ -95,7 +100,7 @@ sudo apt install -y gnome-tweaks
    The reference config lives in this repo at `keyd/etc/keyd/default.conf` (Caps Lock acts as Escape when tapped and Ctrl when held; Escape becomes Caps Lock). It is intentionally **not** stowed because `/etc/keyd/` is root-owned. Copy it manually and reload the daemon:
    ```bash
    sudo cp ~/dotfiles/keyd/etc/keyd/default.conf /etc/keyd/default.conf
-   sudo keyd reload
+   sudo keyd.rvaiya reload
    ```
    Re-run both commands whenever the reference file changes.
 
@@ -110,19 +115,34 @@ These values are stored per-user in dconf and persist across reboots.
 
 ### Fonts
 
-Install [Mononoki Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases) (used by WezTerm — see `wezterm/.config/wezterm/wezterm.lua`) and [Inter Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases) (used by GNOME / Tweaks):
+Install regular [mononoki](https://madmalik.github.io/mononoki/) for WezTerm's text font and [Mononoki Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases) for GNOME Terminal / VS Code terminal glyphs:
 ```bash
-mkdir -p ~/.local/share/fonts && cd ~/.local/share/fonts
-curl -fLO https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Mononoki.zip
-curl -fLO https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Inter.zip
-unzip -o Mononoki.zip -d Mononoki
-unzip -o Inter.zip -d Inter
-rm Mononoki.zip Inter.zip
+rm -rf ~/.local/share/fonts/mononoki ~/.local/share/fonts/Mononoki
+mkdir -p ~/.local/share/fonts/mononoki ~/.local/share/fonts/Mononoki
+curl -fL https://github.com/madmalik/mononoki/releases/download/1.6/mononoki.zip -o /tmp/mononoki.zip
+curl -fL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Mononoki.zip -o /tmp/Mononoki.zip
+unzip -o /tmp/mononoki.zip -d ~/.local/share/fonts/mononoki
+unzip -o /tmp/Mononoki.zip -d ~/.local/share/fonts/Mononoki
+rm /tmp/mononoki.zip /tmp/Mononoki.zip
 fc-cache -fv
 ```
 Verify the fonts are registered:
 ```bash
-fc-list | grep -iE 'mononoki|inter'
+fc-match "mononoki"
+fc-list | grep -i 'mononoki.*nerd'
+fc-match "Mononoki Nerd Font Mono"
+```
+Configure GNOME Terminal to use the Nerd Font for prompt and icon glyphs:
+```bash
+PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | tr -d "'")
+gsettings set "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$PROFILE/" use-system-font false
+gsettings set "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$PROFILE/" font "Mononoki Nerd Font Mono 12"
+```
+Configure VS Code's integrated terminal to use the same Nerd Font:
+```json
+{
+  "terminal.integrated.fontFamily": "Mononoki Nerd Font Mono"
+}
 ```
 
 ### Flatpaks
@@ -163,12 +183,198 @@ The following are some useful GUI applications that can be installed on the syst
 
 ```text-plain
 flatpak install flathub org.mozilla.firefox
-flatpak install flathub org.vscodium.codium
 flatpak install flathub com.github.tchx84.Flatseal
 flatpak install flathub com.mattjakeman.ExtensionManager
 flatpak install flathub com.valvesoftware.Steam
 flatpak install flathub com.discordapp.Discord
 flatpak install flathub org.localsend.localsend_app
+flatpak install flathub org.videolan.VLC
+flatpak install flathub org.libreoffice.LibreOffice
+```
+
+### Visual Studio Code Native Tarball
+
+VS Code is the intentional GUI exception to the Flatpak rule on native Ubuntu. Install it from the official Linux `.tar.gz` instead of the `.deb`, Snap, Flatpak, or Nix package:
+
+- Avoids adding Microsoft's apt repository and system package hooks.
+- Avoids Flatpak sandbox friction with Nix-installed CLI tools, language servers, shells, project files, and terminal environment.
+- Keeps the install contained under `~/.local/opt`, with a small wrapper in `~/.local/bin`.
+
+> **Tradeoff:** This install path does not auto-update through apt, Snap, Flatpak, or Home Manager. Re-download the latest `.tar.gz` from the official VS Code download page when updating.
+
+#### Install
+
+1. **Download the Linux `.tar.gz`**
+
+   Download the official Linux `.tar.gz` build from [code.visualstudio.com](https://code.visualstudio.com/Download). Do not download the `.deb` for this setup.
+
+2. **Extract into a user-local app directory**
+
+   ```bash
+   mkdir -p ~/.local/opt
+   tar -xzf ~/Downloads/code-*.tar.gz -C ~/.local/opt
+   ```
+
+   This should create `~/.local/opt/VSCode-linux-x64`.
+
+3. **Create the `code` launcher wrapper**
+
+   ```bash
+   mkdir -p ~/.local/bin
+   nano ~/.local/bin/code
+   ```
+
+   Paste:
+
+   ```bash
+   #!/usr/bin/env bash
+   exec "$HOME/.local/opt/VSCode-linux-x64/bin/code" --no-sandbox "$@"
+   ```
+
+   Make it executable:
+
+   ```bash
+   chmod +x ~/.local/bin/code
+   ```
+
+   The checked-in zsh config already prepends `~/.local/bin` to `$PATH` via `zsh/.config/zsh/zsh-exports`. After stowing zsh and opening a new shell, verify:
+
+   ```bash
+   command -v code
+   code --version
+   ```
+
+   `--no-sandbox` avoids the Chromium SUID sandbox setup that a package-managed install normally handles. This is convenient for a fully user-local tarball install, but it is a deliberate security tradeoff.
+
+4. **Create the desktop launcher**
+
+   ```bash
+   mkdir -p ~/.local/share/applications
+   nano ~/.local/share/applications/code.desktop
+   ```
+
+   Paste this, replacing `YOUR_USERNAME` with the Ubuntu username:
+
+   ```ini
+   [Desktop Entry]
+   Name=Visual Studio Code
+   Comment=Code Editing. Redefined.
+   Exec=/home/YOUR_USERNAME/.local/bin/code %F
+   Icon=/home/YOUR_USERNAME/.local/opt/VSCode-linux-x64/resources/app/resources/linux/code.png
+   Type=Application
+   Categories=Development;IDE;
+   StartupNotify=true
+   StartupWMClass=Code
+   Terminal=false
+   MimeType=text/plain;inode/directory;
+   ```
+
+   Then refresh the desktop database if the helper is available:
+
+   ```bash
+   chmod +x ~/.local/share/applications/code.desktop
+   command -v update-desktop-database >/dev/null && update-desktop-database ~/.local/share/applications
+   ```
+
+   Log out and back in if VS Code does not appear in the GNOME launcher immediately.
+
+#### Update
+
+Download the latest Linux `.tar.gz`, close VS Code, and replace the extracted directory:
+
+```bash
+rm -rf ~/.local/opt/VSCode-linux-x64
+tar -xzf ~/Downloads/code-*.tar.gz -C ~/.local/opt
+code --version
+```
+
+The wrapper and desktop entry can stay in place as long as the extracted directory name remains `VSCode-linux-x64`.
+
+#### Remove
+
+Remove the app files:
+
+```bash
+rm -rf ~/.local/opt/VSCode-linux-x64
+rm -f ~/.local/bin/code
+rm -f ~/.local/share/applications/code.desktop
+```
+
+Optionally remove user data, caches, settings, and extensions:
+
+```bash
+rm -rf ~/.config/Code
+rm -rf ~/.cache/Code
+rm -rf ~/.vscode
+```
+
+### Codex CLI
+
+Codex CLI is a deliberate Home Manager exception. Install it with the official standalone installer so it can track upstream releases without extra Nix pin/update overhead:
+
+```bash
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+codex --version
+```
+
+Re-run the same installer to update Codex. The installer places the visible command at `~/.local/bin/codex` and stores standalone packages under `~/.codex/packages/standalone`.
+
+Uninstall the CLI package:
+
+```bash
+rm -f ~/.local/bin/codex
+rm -rf ~/.codex/packages/standalone
+```
+
+Remove all Codex state, including auth, config, and sessions:
+
+```bash
+rm -rf ~/.codex
+```
+
+### Agent Skills
+
+Most packages and CLI tools should be managed through Home Manager. Agent skills are a deliberate Ubuntu OS exception: they are installed with the native `skills` CLI because it owns agent-specific wiring that may change upstream.
+
+The currently tracked global skills are:
+
+- [caveman](https://github.com/JuliusBrussee/caveman) — compressed communication modes and related helper skills.
+- [find-skills](https://skills.sh/vercel-labs/skills/find-skills) — discovers other skills from the open agent skills ecosystem.
+
+This is less deterministic than `flake.lock`, but keeps agent-specific skill wiring aligned with the upstream installer. Use `codex` as the agent target for now; replace it with another supported agent slug if needed later.
+
+Install for the current agent:
+```bash
+npx skills add JuliusBrussee/caveman -a codex -g
+npx skills add vercel-labs/skills --skill find-skills -a codex -g
+```
+
+Audit installed skills:
+```bash
+npx skills list -g
+```
+The plain `npx skills list` command checks project-scoped skills only; use `-g` for globally installed skills.
+
+Uninstall:
+```bash
+npx skills remove caveman -a codex -g
+npx skills remove find-skills -a codex -g
+```
+
+Use caveman in an agent session:
+```text
+$caveman
+```
+
+Search for skills from the terminal:
+```bash
+npx skills find react testing
+```
+
+Or ask the agent naturally:
+```text
+Find a skill for React testing.
+Is there a skill for changelog generation?
 ```
 
 ## WSL Setup
@@ -428,6 +634,166 @@ The `flake.lock` file pins every input in `flake.nix` to an exact git commit. It
 - **`home.nix`** answers: *which packages* from that catalog do we install?
 
 After the first `home-manager switch`, commit `flake.lock` to the repo. To update all inputs later, run `nix flake update` and then `home-manager switch`.
+
+#### Global vs Project-Specific Environments
+
+Home Manager is the global layer. Anything added to `home-manager/.config/home-manager/home.nix` is installed into the user profile and is available everywhere through `~/.nix-profile/bin`. This is the right place for general-purpose tools that should exist in every shell:
+
+```text
+git
+curl
+ripgrep
+fd
+python311
+uv
+gcc
+nodejs
+tmux
+neovim
+```
+
+Project dependencies are the local layer. These are libraries, frameworks, or toolchains needed by one project but not necessarily by the whole workstation. Heavy Python stacks such as `vectorbt`, `numpy`, `pandas`, `scipy`, `numba`, and `scikit-learn` should normally live in a project environment instead of the global Home Manager profile.
+
+```text
+Home Manager
+  installs global tools once
+  available everywhere
+  managed in this dotfiles repo
+
+Project environment
+  installs project dependencies
+  active only inside that project
+  managed by that project's files
+```
+
+Use this rule of thumb:
+
+```text
+Add to Home Manager:
+  CLI tools, editors, language runtimes, build tools, shell utilities.
+
+Add to a project:
+  Python libraries, Node packages, app frameworks, data-science stacks,
+  and dependencies that may differ between projects.
+```
+
+Do not run `pip install` against the Nix-managed global Python. That Python lives in `/nix/store`, which is immutable, so `pip` will fail with `externally-managed-environment`. Use a project `.venv` instead.
+
+#### Project Python Workflow (`nix develop` + `uv`)
+
+For Python projects, split responsibilities clearly:
+
+```text
+Nix dev shell:
+  Provides system tools and native Linux libraries.
+
+uv:
+  Creates the project virtual environment and installs Python packages.
+
+.venv:
+  Stores the installed Python packages for that project.
+```
+
+This matters for packages such as `vectorbt`. `uv` can install `vectorbt` and its Python dependencies, but compiled dependencies such as `numpy`, `scipy`, and `numba` may need Linux shared libraries like `libstdc++.so.6` and `libz.so.1`. In a Nix environment, those libraries live in isolated `/nix/store` paths, so the project dev shell makes them visible through `LD_LIBRARY_PATH`.
+
+```text
+Project folder
+  |
+  +-- flake.nix        Nix dev shell: Python, uv, gcc runtime libs, zlib
+  +-- pyproject.toml   Python dependency list
+  +-- uv.lock          exact Python dependency versions
+  +-- .venv/           installed Python packages, not committed
+```
+
+The pieces have separate jobs:
+
+```text
+nix develop:
+  Enter the project's Nix shell and expose native libraries.
+
+uv add vectorbt:
+  Add vectorbt to pyproject.toml and lock its Python dependencies.
+
+uv sync:
+  Recreate .venv from pyproject.toml and uv.lock.
+
+uv run python ...:
+  Run Python inside the project .venv.
+```
+
+Example `flake.nix` for a `vectorbt` project:
+
+```nix
+{
+  description = "vectorbt Python development environment";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+  };
+
+  outputs = { nixpkgs, ... }:
+  let
+    system = "x86_64-linux";
+    pkgs = nixpkgs.legacyPackages.${system};
+  in {
+    devShells.${system}.default = pkgs.mkShell {
+      packages = [
+        pkgs.zsh
+        pkgs.python311
+        pkgs.uv
+        pkgs.gcc
+        pkgs.zlib
+        pkgs.stdenv.cc.cc.lib
+      ];
+
+      shellHook = ''
+        export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.zlib}/lib:$LD_LIBRARY_PATH"
+        export UV_PROJECT_ENVIRONMENT=".venv"
+      '';
+    };
+  };
+}
+```
+
+Optional `.envrc` for automatic loading with `direnv` and `nix-direnv`:
+
+```bash
+watch_file pyproject.toml
+watch_file uv.lock
+
+use flake
+uv sync --quiet
+```
+
+Create the Python project and install `vectorbt`:
+
+```bash
+mkdir -p ~/projects/vectorbt-playground
+cd ~/projects/vectorbt-playground
+
+# Add the flake.nix shown above first.
+nix develop --command zsh
+
+uv init
+uv add vectorbt
+uv run python -c "import vectorbt as vbt; print(vbt.__version__)"
+```
+
+Plain `nix develop` starts Bash by default. Use `nix develop --command zsh` for an interactive shell that keeps the custom zsh prompt and shell behavior.
+
+For repeatable commands, including Codex, CI, and scripts, prefer the explicit one-command form:
+
+```bash
+nix develop --command uv sync
+nix develop --command uv run python -c "import vectorbt as vbt; print(vbt.__version__)"
+nix develop --command uv run python my_backtest.py
+```
+
+This avoids relying on hidden shell state such as a manually activated `.venv`.
+
+`direnv`, `.envrc`, and `nix-direnv` are optional convenience tools. They automatically enter the dev shell when changing into the project directory, and the `.envrc` above also runs `uv sync --quiet`. If using agents, scripts, or CI, prefer `nix develop --command ...` because each command fully describes its own environment.
+
+If the zsh prompt should visually indicate that a Nix shell is active, keep the same prompt layout and branch only on `IN_NIX_SHELL` to change colors. Avoid relying on a prompt plugin for this setup; the checked-in zsh prompt can handle it directly.
 
 ### Operations
 

@@ -27,7 +27,12 @@ function set-prompt() {
 
   # Style 3: Single pill (like style 1)
   # PROMPT=$'\n'"%F{#2f4f4f}%f%K{#2f4f4f}%F{#f5deb3}%D{%H:%M}%f %F{#ffc0cb}|%f %F{#afeeee}${LAST_CMD_DURATION}%f %F{#ffc0cb}|%f %F{#adff2f}%2~%f%k%F{#2f4f4f}%f"$'\n'"%F{yellow} %f"
-  PROMPT=$'\n'"%F{#2f4f4f}%f%K{#2f4f4f}%F{#40e0d0}%D{%H:%M}%f %F{#f0ffff}|%f %F{#adff2f}%2~%f%k%F{#2f4f4f}%f"$'\n'"%F{yellow} %f"
+  local prompt_bg="#2f4f4f"
+  if [[ -n "$IN_NIX_SHELL" ]]; then
+    prompt_bg="#4b3f72"
+  fi
+
+  PROMPT=$'\n'"%F{${prompt_bg}}%f%K{${prompt_bg}}%F{#40e0d0}%D{%H:%M}%f %F{#f0ffff}|%f %F{#adff2f}%2~%f%k%F{${prompt_bg}}%f"$'\n'"%F{yellow} %f"
 
   # Set user input color
   # additional options: bold, underline, standout
@@ -69,4 +74,3 @@ setopt no_prompt_{bang,subst} prompt_{cr,percent,sp}
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd precmd
 add-zsh-hook preexec preexec
-
