@@ -1,5 +1,7 @@
 # Environment Setup
 
+<!-- markdownlint-configure-file { "MD013": false, "MD024": { "siblings_only": true }, "MD040": false } -->
+
 ## Table of Contents
 
 - [Architecture & Features](#architecture--features)
@@ -10,7 +12,9 @@
   - [Keyboard Modifications](#keyboard-modifications)
   - [Fonts](#fonts)
   - [Flatpaks](#flatpaks)
+  - [Default Browser](#default-browser)
   - [Visual Studio Code Native Tarball](#visual-studio-code-native-tarball)
+  - [Cursor AppImage](#cursor-appimage)
   - [Codex CLI](#codex-cli)
   - [Agent Skills](#agent-skills)
 - [WSL Setup](#wsl-setup)
@@ -62,6 +66,7 @@ This setup uses **Nix Home Manager** to manage most *packages* and global tools,
 ### Bootstrap Packages
 
 A fresh Ubuntu 24.04 install is missing a couple of tools needed to run the rest of this guide (notably the Nix installer and the dotfiles clone). Install them via apt before doing anything else:
+
 ```bash
 sudo apt update
 sudo apt install -y git curl
@@ -78,6 +83,7 @@ The `wezterm.lua` config is symlinked into place by Stow during the Nix Home Man
 ### Desktop Environment
 
 Install GNOME Tweaks for fine-grained desktop and shell customization:
+
 ```bash
 sudo apt install -y gnome-tweaks
 ```
@@ -89,6 +95,7 @@ sudo apt install -y gnome-tweaks
 [keyd](https://github.com/rvaiya/keyd) is a low-level key remapping daemon that runs as a systemd service, so the remaps work uniformly across X11, Wayland, the TTY, and the login screen.
 
 1. **Install keyd** from the maintainer's PPA:
+
    ```bash
    sudo add-apt-repository -y ppa:keyd-team/ppa
    sudo apt update
@@ -98,24 +105,29 @@ sudo apt install -y gnome-tweaks
 
 2. **Deploy the config**
    The reference config lives in this repo at `keyd/etc/keyd/default.conf` (Caps Lock acts as Escape when tapped and Ctrl when held; Escape becomes Caps Lock). It is intentionally **not** stowed because `/etc/keyd/` is root-owned. Copy it manually and reload the daemon:
+
    ```bash
    sudo cp ~/dotfiles/keyd/etc/keyd/default.conf /etc/keyd/default.conf
    sudo keyd.rvaiya reload
    ```
+
    Re-run both commands whenever the reference file changes.
 
 #### Key Repeat Rate
 
 Speed up GNOME's keyboard repeat (lower `delay` and `repeat-interval` than the defaults expose in Settings):
+
 ```bash
 gsettings set org.gnome.desktop.peripherals.keyboard delay 180
 gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 20
 ```
+
 These values are stored per-user in dconf and persist across reboots.
 
 ### Fonts
 
 Install regular [mononoki](https://madmalik.github.io/mononoki/) for WezTerm's text font and [Mononoki Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases) for GNOME Terminal / VS Code terminal glyphs:
+
 ```bash
 rm -rf ~/.local/share/fonts/mononoki ~/.local/share/fonts/Mononoki
 mkdir -p ~/.local/share/fonts/mononoki ~/.local/share/fonts/Mononoki
@@ -126,19 +138,25 @@ unzip -o /tmp/Mononoki.zip -d ~/.local/share/fonts/Mononoki
 rm /tmp/mononoki.zip /tmp/Mononoki.zip
 fc-cache -fv
 ```
+
 Verify the fonts are registered:
+
 ```bash
 fc-match "mononoki"
 fc-list | grep -i 'mononoki.*nerd'
 fc-match "Mononoki Nerd Font Mono"
 ```
+
 Configure GNOME Terminal to use the Nerd Font for prompt and icon glyphs:
+
 ```bash
 PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | tr -d "'")
 gsettings set "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$PROFILE/" use-system-font false
 gsettings set "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$PROFILE/" font "Mononoki Nerd Font Mono 12"
 ```
-Configure VS Code's integrated terminal to use the same Nerd Font:
+
+Configure VS Code's integrated terminal to use the same Nerd Font in `~/.config/Code/User/settings.json`:
+
 ```json
 {
   "terminal.integrated.fontFamily": "Mononoki Nerd Font Mono"
@@ -183,6 +201,7 @@ The following are some useful GUI applications that can be installed on the syst
 
 ```text-plain
 flatpak install flathub org.mozilla.firefox
+flatpak install flathub com.microsoft.Edge
 flatpak install flathub com.github.tchx84.Flatseal
 flatpak install flathub com.mattjakeman.ExtensionManager
 flatpak install flathub com.valvesoftware.Steam
@@ -190,6 +209,25 @@ flatpak install flathub com.discordapp.Discord
 flatpak install flathub org.localsend.localsend_app
 flatpak install flathub org.videolan.VLC
 flatpak install flathub org.libreoffice.LibreOffice
+```
+
+### Default Browser
+
+Set Firefox as the default browser for desktop URL handling:
+
+```bash
+xdg-settings set default-web-browser org.mozilla.firefox.desktop
+xdg-mime default org.mozilla.firefox.desktop x-scheme-handler/http
+xdg-mime default org.mozilla.firefox.desktop x-scheme-handler/https
+xdg-mime default org.mozilla.firefox.desktop text/html
+```
+
+Verify and test:
+
+```bash
+xdg-settings get default-web-browser
+gio mime x-scheme-handler/https
+xdg-open https://example.com
 ```
 
 ### Visual Studio Code Native Tarball
@@ -308,6 +346,128 @@ rm -rf ~/.cache/Code
 rm -rf ~/.vscode
 ```
 
+### Cursor AppImage
+
+Cursor is another intentional GUI editor exception to Flatpak. Use the official AppImage to keep the install user-local and mostly isolated from Ubuntu package dependencies.
+
+#### Install
+
+1. **Install AppImage compatibility**
+
+   ```bash
+   sudo apt install -y libfuse2t64
+   ```
+
+2. **Download and place the AppImage**
+
+   Download the Linux x64 AppImage from [cursor.com/download](https://cursor.com/download), then move it into a stable location:
+
+   ```bash
+   mkdir -p ~/.local/opt/cursor
+   mv ~/Downloads/Cursor-*.AppImage ~/.local/opt/cursor/Cursor.AppImage
+   chmod +x ~/.local/opt/cursor/Cursor.AppImage
+   ```
+
+3. **Extract the app icon**
+
+   ```bash
+   mkdir -p ~/.local/share/icons/hicolor/256x256/apps
+   mkdir -p ~/.local/share/pixmaps
+   tmpdir=$(mktemp -d)
+   (
+     cd "$tmpdir"
+     ~/.local/opt/cursor/Cursor.AppImage --appimage-extract >/dev/null
+     icon=$(find squashfs-root -type f \( -iname 'cursor.png' -o -iname '*cursor*.png' \) -print -quit)
+     cp "$icon" ~/.local/share/icons/hicolor/256x256/apps/cursor.png
+     cp "$icon" ~/.local/share/pixmaps/cursor.png
+   )
+   rm -rf "$tmpdir"
+   command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor
+   ```
+
+4. **Create the `cursor` launcher wrapper**
+
+   ```bash
+   mkdir -p ~/.local/bin
+   nvim ~/.local/bin/cursor
+   ```
+
+   Paste:
+
+   ```bash
+   #!/usr/bin/env bash
+   exec "$HOME/.local/opt/cursor/Cursor.AppImage" --no-sandbox "$@"
+   ```
+
+   Make it executable and verify:
+
+   ```bash
+   chmod +x ~/.local/bin/cursor
+   command -v cursor
+   cursor --version
+   ```
+
+5. **Create the desktop launcher**
+
+   ```bash
+   mkdir -p ~/.local/share/applications
+   nvim ~/.local/share/applications/cursor.desktop
+   ```
+
+   Paste this, replacing `YOUR_USERNAME` with the Ubuntu username:
+
+   ```ini
+   [Desktop Entry]
+   Name=Cursor
+   Comment=AI Code Editor
+   Exec=/home/YOUR_USERNAME/.local/bin/cursor %F
+   Icon=cursor
+   Type=Application
+   Categories=Development;IDE;
+   StartupNotify=true
+   StartupWMClass=Cursor
+   Terminal=false
+   MimeType=text/plain;inode/directory;
+   ```
+
+   Then refresh the desktop database if the helper is available:
+
+   ```bash
+   chmod +x ~/.local/share/applications/cursor.desktop
+   command -v update-desktop-database >/dev/null && update-desktop-database ~/.local/share/applications
+   command -v xdg-desktop-menu >/dev/null && xdg-desktop-menu forceupdate --mode user
+   ```
+
+   Log out and back in if GNOME still shows a generic icon in the app menu.
+
+#### Update
+
+Download the latest AppImage, close Cursor, and replace the old file:
+
+```bash
+mv ~/Downloads/Cursor-*.AppImage ~/.local/opt/cursor/Cursor.AppImage
+chmod +x ~/.local/opt/cursor/Cursor.AppImage
+cursor --version
+```
+
+#### Remove
+
+```bash
+rm -rf ~/.local/opt/cursor
+rm -f ~/.local/bin/cursor
+rm -f ~/.local/share/applications/cursor.desktop
+rm -f ~/.local/share/icons/hicolor/256x256/apps/cursor.png
+rm -f ~/.local/share/pixmaps/cursor.png
+```
+
+Optionally remove user data, caches, settings, and extensions:
+
+```bash
+rm -rf ~/.config/Cursor
+rm -rf ~/.cache/Cursor
+rm -rf ~/.cursor
+```
+
 ### Codex CLI
 
 Codex CLI is a deliberate Home Manager exception. Install it with the official standalone installer so it can track upstream releases without extra Nix pin/update overhead:
@@ -341,37 +501,45 @@ The currently tracked global skills are:
 - [caveman](https://github.com/JuliusBrussee/caveman) — compressed communication modes and related helper skills.
 - [find-skills](https://skills.sh/vercel-labs/skills/find-skills) — discovers other skills from the open agent skills ecosystem.
 
-This is less deterministic than `flake.lock`, but keeps agent-specific skill wiring aligned with the upstream installer. Use `codex` as the agent target for now; replace it with another supported agent slug if needed later.
+This is less deterministic than `flake.lock`, but keeps agent-specific skill wiring aligned with the upstream installer.
 
 Install for the current agent:
+
 ```bash
-npx skills add JuliusBrussee/caveman -a codex -g
-npx skills add vercel-labs/skills --skill find-skills -a codex -g
+npx skills add JuliusBrussee/caveman -g
+npx skills add vercel-labs/skills --skill find-skills -g
 ```
 
 Audit installed skills:
+
 ```bash
 npx skills list -g
 ```
+
 The plain `npx skills list` command checks project-scoped skills only; use `-g` for globally installed skills.
 
 Uninstall:
+
 ```bash
 npx skills remove caveman -a codex -g
 npx skills remove find-skills -a codex -g
 ```
 
 Use caveman in an agent session:
+
 ```text
 $caveman
+/caveman
 ```
 
 Search for skills from the terminal:
+
 ```bash
 npx skills find react testing
 ```
 
 Or ask the agent naturally:
+
 ```text
 Find a skill for React testing.
 Is there a skill for changelog generation?
@@ -387,9 +555,11 @@ Is there a skill for changelog generation?
 
 3. **Configure the WezTerm shortcut to launch WSL**
    A shortcut is created automatically during installation. Open its properties and modify the Target:
+
    ```
    "C:\path\wezterm-gui.exe" --config default_cwd='\\\\wsl$' start -- wsl
    ```
+
    Replace `C:\path\wezterm-gui.exe` with the actual install path.
 
 4. **Open WezTerm**, confirm WSL starts automatically, and pin it to the taskbar.
@@ -399,32 +569,41 @@ The `wezterm.lua` config file is copied to the Windows home directory in setup s
 ### Distribution Setup
 
 1. **Install the WSL distribution** from Windows CMD:
+
    ```
    wsl --install Ubuntu-24.04 --name Nixbuntu
    ```
+
    Set a username and password when prompted. WSL will start automatically after installation.
 
 2. **Enable systemd** (required before installing Nix):
+
    ```bash
    sudo vim /etc/wsl.conf
    ```
+
    Ensure the file contains:
+
    ```ini
    [boot]
    systemd=true
    ```
+
    If the file was modified, restart WSL from Windows CMD and relaunch:
+
    ```
    wsl --shutdown
    wsl -d Nixbuntu
    ```
 
 3. **Set the default directory to home** so the shell always opens in `~` instead of the Windows mount:
+
    ```bash
    echo 'cd ~' >> ~/.bashrc
    ```
 
 4. **Verify network connectivity** before proceeding to the Nix installation:
+
    ```bash
    ping -c 1 google.com
    ```
@@ -437,13 +616,16 @@ WSL2 auto-generates `/etc/resolv.conf` pointing to its internal DNS relay (`10.2
 
 1. **Get the DNS server IP**
    In **Windows Command Prompt** (not WSL), run:
+
    ```
    nslookup google.com
    ```
+
    Note the DNS server IP address (e.g., `10.x.x.x`). This is the actual DNS server that the WSL2 relay forwards to.
 
 2. **Disable WSL auto-generated DNS config**
    Append to `/etc/wsl.conf` (same file edited in WSL Setup step 2):
+
    ```bash
    sudo tee -a /etc/wsl.conf > /dev/null <<'EOF'
 
@@ -454,6 +636,7 @@ WSL2 auto-generates `/etc/resolv.conf` pointing to its internal DNS relay (`10.2
 
 3. **Replace resolv.conf with the DNS server**
    Replace the WSL-managed symlink with a static file using the IP from step 1:
+
    ```bash
    sudo rm /etc/resolv.conf && \
    sudo tee /etc/resolv.conf > /dev/null <<'EOF'
@@ -462,10 +645,12 @@ WSL2 auto-generates `/etc/resolv.conf` pointing to its internal DNS relay (`10.2
    ```
 
 4. **Verify** DNS resolution works:
+
    ```bash
    curl -sS -o /dev/null -w "%{http_code} in %{time_total}s\n" \
        https://api.github.com/repos/NixOS/nixpkgs/commits/nixpkgs-unstable
    ```
+
    This should complete in under a second. If it still times out, the DNS server IP may have changed -- repeat step 1 to get the current one.
 
 > **Note:** The DNS server IP may change when switching between networks. If connectivity breaks after a network change, repeat step 1 to get the updated IP and rewrite `/etc/resolv.conf`.
@@ -473,21 +658,25 @@ WSL2 auto-generates `/etc/resolv.conf` pointing to its internal DNS relay (`10.2
 ## Nix Home Manager Setup (WSL & Ubuntu)
 
 1. **Install Nix**
+
    ```bash
    sh <(curl -L https://nixos.org/nix/install) --daemon
    ```
-   
+
    **Important:** After the installation finishes, reload the shell to make the `nix` command available:
+
    ```bash
    source /etc/profile
    ```
 
 2. **Enable Nix Flakes**
+
    ```bash
    mkdir -p ~/.config/nix && echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
    ```
 
 3. **Clone Dotfiles**
+
    ```bash
    git clone https://github.com/MohitRane8/dotfiles ~/dotfiles
    cd ~/dotfiles
@@ -496,25 +685,30 @@ WSL2 auto-generates `/etc/resolv.conf` pointing to its internal DNS relay (`10.2
 
 4. **Update Username Configuration**
    Update the username in `flake.nix` (the single source of truth for the username):
+
    ```bash
    sed -i 's/username = "mrane"/username = "'$USER'"/' home-manager/.config/home-manager/flake.nix
    ```
 
 5. **Stow Configurations**
    Use Nix to ephemerally run Stow and link the dotfiles:
+
    ```bash
    cd ~/dotfiles
    nix shell nixpkgs\#stow -c stow home-manager zsh tmux lf nvim htop
    ```
 
    On **Ubuntu OS**, also stow `wezterm` so the WezTerm config is picked up from `~/.config/wezterm/wezterm.lua`:
+
    ```bash
    nix shell nixpkgs\#stow -c stow wezterm
    ```
+
    On WSL, the WezTerm config lives on the Windows side instead and is copied over manually in step 10.
 
 6. **Verify Release Version**
    Review the checklist at the top of `home-manager/.config/home-manager/flake.nix` and ensure `nixpkgs.url`, `home-manager.url`, and `stateVersion` reflect the latest stable Home Manager release. The `nix run` command in the next step must also reference the same release branch. If any values were updated, stage the changes before proceeding:
+
    ```bash
    cd ~/dotfiles && git add -A
    ```
@@ -522,10 +716,13 @@ WSL2 auto-generates `/etc/resolv.conf` pointing to its internal DNS relay (`10.2
 7. **Build Environment**
    Run Home Manager to install all packages. Replace `release-25.11` with the release branch from `flake.nix` if it was updated in step 6.
    - For **WSL**:
+
      ```bash
      nix run home-manager/release-25.11 -- switch --flake ~/.config/home-manager\#$USER-wsl
      ```
+
    - For **Ubuntu OS**:
+
      ```bash
      nix run home-manager/release-25.11 -- switch --flake ~/.config/home-manager\#$USER-ubuntu
      ```
@@ -534,30 +731,36 @@ WSL2 auto-generates `/etc/resolv.conf` pointing to its internal DNS relay (`10.2
 
 8. **Set Zsh as Default Shell**
    The Nix-installed zsh must be added to `/etc/shells` before `chsh` will accept it:
+
    ```bash
    echo "$HOME/.nix-profile/bin/zsh" | sudo tee -a /etc/shells
    chsh -s $(which zsh)
    ```
+
    Restart WSL (or log out and back in on Ubuntu) for the change to take effect.
 
 9. **Create wslview symlink (WSL only)**
    The `wv` shell alias in `zsh-aliases` covers terminal usage, but programs like Neovim can't see shell aliases. Create a symlink so they can find `wslview` as `wv`:
+
    ```bash
    mkdir -p $HOME/.local/bin && ln -s $(which wslview) $HOME/.local/bin/wv
    ```
 
 10. **Copy Windows-side configs (WSL only)**
     `.wslconfig` and the WezTerm config must live in the Windows user home directory. The WezTerm config is checked in at `wezterm/.config/wezterm/wezterm.lua` (so that `stow wezterm` works on native Ubuntu); on Windows it is copied to `~/.wezterm.lua`, which WezTerm reads from the Windows user home:
+
     ```bash
     cp ~/dotfiles/wsl/.wslconfig /mnt/c/Users/$WINUSERNAME/
     cp ~/dotfiles/wezterm/.config/wezterm/wezterm.lua /mnt/c/Users/$WINUSERNAME/.wezterm.lua
     ```
+
     Re-run these after modifying either file. Restart WSL (`wsl --shutdown`) for `.wslconfig` changes to take effect.
 
     > **Note:** Review `wsl/.wslconfig` before copying — `memory` limits how much RAM the WSL2 VM can use and `swap` sets the swap file size. The checked-in values (20GB memory, 8GB swap) suit a 32GB machine; adjust based on total system RAM.
 
 11. **Commit `flake.lock` (Owner only)**
     The first `home-manager switch` generates `flake.lock`. Commit it along with any version changes made in step 6:
+
     ```bash
     cd ~/dotfiles && git add -A && git commit -m "Initial home-manager setup"
     ```
@@ -574,25 +777,30 @@ The environment is ready to use. The following sections are optional:
 
 1. **Set Git Identity**
    Required before any commit will succeed. Use the same email that's attached to your GitHub account so commits are attributed correctly:
+
    ```bash
    git config --global user.email "you@example.com"
    git config --global user.name  "Your Name"
    ```
 
 2. **Generate SSH Key**
+
    ```bash
    ssh-keygen -t ed25519 -C "you@example.com"
    ```
+
    *Add the contents of `~/.ssh/id_ed25519.pub` to GitHub: Settings → SSH and GPG keys.*
 
 3. **Add Key to SSH Agent (Optional)**
    If a passphrase is set and shouldn't be typed every time a push happens, add the key to the agent. *(Note: The agent resets when WSL/Ubuntu restarts; this can be automated later in `.zshrc` if desired.)*
+
    ```bash
    eval "$(ssh-agent -s)"
    ssh-add ~/.ssh/id_ed25519
    ```
 
 4. **Switch Remotes to SSH**
+
    ```bash
    # Main dotfiles repo
    git -C ~/dotfiles remote set-url origin git@github.com:MohitRane8/dotfiles.git
@@ -620,10 +828,12 @@ When Home Manager is installed, it automatically prepends its own folder to the 
 Nix flakes only see files that are **tracked by git**. Committed and staged files are visible; unstaged or untracked changes are silently ignored. This means any edit to `home.nix` or `flake.nix` must be staged before running `home-manager switch`, otherwise Nix evaluates the old version without warning.
 
 The day-to-day workflow after any change:
+
 ```bash
 cd ~/dotfiles && git add -A && \
 home-manager switch --flake ~/.config/home-manager\#$USER-wsl
 ```
+
 Replace `wsl` with `ubuntu` on native Ubuntu.
 
 #### Reproducibility (`flake.lock`)
@@ -798,14 +1008,17 @@ If the zsh prompt should visually indicate that a Nix shell is active, keep the 
 ### Operations
 
 #### Adding a Package
+
 1. Open `home-manager/.config/home-manager/home.nix`.
 2. Add the package name to the common list, or to the WSL/Ubuntu specific lists at the bottom.
 3. Stage and apply:
+
    ```bash
    cd ~/dotfiles && git add -A && home-manager switch --flake ~/.config/home-manager\#$USER-wsl
    ```
 
 #### Removing a Package
+
 1. Delete the line from `home.nix`.
 2. Stage and apply with the same command. Home Manager will unlink the removed package from the profile.
 
@@ -824,6 +1037,7 @@ nix flake update && \
 cd ~/dotfiles && git add -A && \
 home-manager switch --flake ~/.config/home-manager\#$USER-wsl
 ```
+
 Commit `flake.lock` afterwards to share the updated versions across machines.
 
 #### Upgrading Home Manager Release
@@ -834,6 +1048,7 @@ When a new stable release comes out (e.g., 26.05), update these two lines in `fl
 - `home-manager.url` — change `release-25.11` to `release-26.05`
 
 Then apply:
+
 ```bash
 cd ~/dotfiles && git add -A && \
 home-manager switch --flake ~/.config/home-manager\#$USER-wsl
@@ -851,6 +1066,7 @@ After running through Ubuntu OS Setup, the `git`, `curl`, `wezterm`, `gnome-twea
 
 - **`apt-mark showmanual`** — lists every package marked as manually installed (i.e., not pulled in only as a dependency). It includes packages that ship preinstalled on the Ubuntu image, so the list is longer than what you personally installed.
 - **`grep "Commandline: apt install" /var/log/apt/history.log`** — replays only the `apt install` commands you actually typed (along with their flags). Useful for reconstructing what was installed by hand, especially after a long-lived install. Older entries roll into rotated logs (`/var/log/apt/history.log.*.gz`) — use `zgrep` to include those:
+
   ```bash
   zgrep "Commandline: apt install" /var/log/apt/history.log*
   ```
@@ -860,6 +1076,7 @@ After running through Ubuntu OS Setup, the `git`, `curl`, `wezterm`, `gnome-twea
 #### Keyboard Modifications
 
 **Key repeat rate** — Windows caps the repeat rate in Control Panel. To go beyond the limit, modify the registry values under `HKEY_CURRENT_USER\Control Panel\Accessibility\Keyboard Response`. See [this SuperUser answer](https://superuser.com/questions/1058474/increase-keyboard-repeat-rate-beyond-control-panel-limits-in-windows-10) for details. Original values:
+
 ```
 "AutoRepeatDelay"="1000"
 "AutoRepeatRate"="500"
@@ -867,7 +1084,9 @@ After running through Ubuntu OS Setup, the `git`, `curl`, `wezterm`, `gnome-twea
 "DelayBeforeAcceptance"="1000"
 "Flags"="126"
 ```
+
 Faster values:
+
 ```
 "AutoRepeatDelay"="200"
 "AutoRepeatRate"="6"
@@ -875,9 +1094,11 @@ Faster values:
 "DelayBeforeAcceptance"="0"
 "Flags"="59"
 ```
+
 Reboot for the changes to take effect.
 
 **Key remapping** — [dual-key-remap](https://github.com/ililim/dual-key-remap) enables dual-purpose keys on Windows. After installing, create `config.txt` with:
+
 ```
 remap_key=CAPSLOCK
 when_alone=ESCAPE
@@ -887,19 +1108,23 @@ remap_key=ESCAPE
 when_alone=CAPSLOCK
 with_other=CAPSLOCK
 ```
+
 This makes Caps Lock act as Escape when tapped alone and Ctrl when held with another key. Escape becomes Caps Lock for the rare occasions it is needed.
 
 #### Check Disk Space
 
 Scan the WSL filesystem excluding Windows mounts:
+
 ```bash
 sudo ncdu / --exclude /mnt
 ```
+
 The disk space used by the distro can also be confirmed on Windows under Settings → Apps → Installed apps by scrolling to the distribution.
 
 #### Compact the VHDX
 
 WSL2 stores the filesystem in a `.vhdx` virtual disk that grows as files are added but does not automatically shrink when files are deleted. To reclaim the free space, compact the VHDX from Windows CMD:
+
 ```
 wsl --shutdown
 diskpart
@@ -921,9 +1146,11 @@ Although WSL2 can access Windows directories (`/mnt/c/...`), cross-filesystem ac
 Map the network drive in Windows first (search "Map network drive" → select drive letter → enter network path → check "Reconnect at sign-in").
 
 Then in WSL, use `wslact auto-mount` (part of `wslu`) or manually add to `/etc/fstab` (replace `Z:` and `/mnt/z` with your drive letter and mount point):
+
 ```
 Z: /mnt/z drvfs defaults 0 0
 ```
+
 Then run `sudo mount -a`. To unmount later, run `sudo umount /mnt/z/`. Access speeds are slow but usable for occasional file transfers.
 
 #### WSL Utilities Reference
@@ -931,21 +1158,25 @@ Then run `sudo mount -a`. To unmount later, run `sudo umount /mnt/z/`. Access sp
 [`wslu`](https://wslutiliti.es/wslu/) is installed via Home Manager. A `wv` shell alias is configured in `zsh-aliases`, and a symlink for non-shell programs is created in setup step 9.
 
 **wslview** — open files, directories, and URLs in Windows:
+
 - `wslview <file>` — open in the default Windows program
 - `wslview <directory>` — open in Windows File Explorer
 - `wslview -r $(wslpath -au 'C:\Program Files\Mozilla Firefox\firefox.exe')` — register a browser for link opening
 
 **wslvar** — read Windows environment variables:
+
 - `wslvar --getsys` — print all system environment variables
 - `wslvar --sys <name>` — print a specific system variable
 - `wslvar --getshell` — print all folder environment variables
 - `wslvar --shell <name>` — print a specific folder variable
 
 **wslpath** — convert paths between WSL and Windows (not part of wslu, built into WSL):
+
 - `wslpath -w <linux_path>` — Linux to Windows path
 - `wslpath -u <windows_path>` — Windows to Linux path
 
 **Other utilities:**
+
 - `wslsys` — print essential WSL specs
 - `wslact auto-mount` — auto-mount mapped Windows network drives
 
@@ -956,6 +1187,7 @@ There are other subcommands and options not covered here. See the [wslu document
 Windows binaries are accessible from WSL but require the `.exe` suffix. For example, `7z` calls the Linux binary while `7z.exe` calls the Windows-installed version.
 
 When a tool is only installed on the Windows side (no Linux equivalent), WSL can call it directly via `.exe`. For scripts that need to work on both WSL and native Ubuntu, detect the environment and append the suffix:
+
 ```bash
 if [[ -n "$WSL_DISTRO_NAME" ]]; then
     EXE_SUFFIX=".exe"
@@ -973,18 +1205,25 @@ When both versions are available, prefer the Linux binary -- calling `.exe` from
 #### Backing Up
 
 1. List installed distributions from Windows CMD:
+
    ```
    wsl -l -v
    ```
+
 2. Shut down WSL to ensure a clean, consistent export:
+
    ```
    wsl --shutdown
    ```
+
 3. Export the distribution:
+
    ```
    wsl --export <distro_name> <backup_path>\<distro_name>_<YYYY-MM-DD>.tar
    ```
+
    Optionally, compress with zstd and verify. `-19` sets high compression; `--rm` removes the original TAR after compression:
+
    ```
    zstd -19 --rm <backup_path>\<distro_name>_<YYYY-MM-DD>.tar
    zstd -t <backup_path>\<distro_name>_<YYYY-MM-DD>.tar.zst
@@ -995,26 +1234,36 @@ When both versions are available, prefer the Linux binary -- calling `.exe` from
 #### Restoring
 
 1. Remove the existing distribution before restoring (if replacing it):
+
    ```
    wsl --unregister <distro_name>
    ```
+
 2. Import the backed up distribution. From an uncompressed TAR:
+
    ```
    wsl --import <distro_name> <install_path> <backup_path>\<distro_name>_<YYYY-MM-DD>.tar
    ```
+
    Or from a zstd-compressed archive via streaming decompression (avoids extracting a temp TAR to disk):
+
    ```
    zstd -dc <backup_path>\<distro_name>_<YYYY-MM-DD>.tar.zst | wsl --import <distro_name> <install_path> -
    ```
+
 3. Confirm the distribution was imported:
+
    ```
    wsl -l -v
    ```
+
 4. Start WSL and check if it starts with the intended user name. TAR imports default to root because the original user metadata is not preserved. If the user is wrong, add the following to `/etc/wsl.conf`:
+
    ```ini
    [user]
    default=<username_used_for_backed_up_distro>
    ```
+
    Restart WSL (`wsl --shutdown`) for the change to take effect.
 
 > **Note:** zstd must be installed on Windows for the compression steps (e.g., `winget install Facebook.Zstandard`). `wsl --import` does not accept compressed archives directly, which is why streaming decompression is used.
@@ -1028,14 +1277,18 @@ When both versions are available, prefer the Linux binary -- calling `.exe` from
 If tmux-resurrect fails to restore a session:
 
 1. Navigate to the resurrect data directory:
+
    ```bash
    cd ~/.local/share/tmux/resurrect
    ```
+
 2. Find the latest non-empty restore file and relink:
+
    ```bash
    ls -lt *.txt | head -5
    ln -sf <latest_non_empty_file> last
    ```
+
 3. Launch tmux and restore the session normally.
 
 [Reference](https://github.com/tmux-plugins/tmux-resurrect/issues/122)
@@ -1045,20 +1298,26 @@ If tmux-resurrect fails to restore a session:
 #### WSL2 Hangs
 
 When WSL2 hangs, check the `Vmmem` process in Windows Task Manager for CPU/memory consumption. Common causes:
+
 - Insufficient memory allocation in `.wslconfig` — ensure adequate RAM is configured
 - Waking from Windows Hibernate can leave the VM in a bad state
 
 To force-kill WSL, try these commands in order from Windows CMD (stop once it recovers):
+
 ```
 wsl --shutdown
 taskkill /f /im wslservice.exe
 ```
+
 If that doesn't work, find and kill the LxssManager service host:
+
 ```
 tasklist /svc /fi "imagename eq svchost.exe" | findstr LxssManager
 taskkill /f /pid <PID>
 ```
+
 If none of the above work, disable and re-enable the WSL feature and reboot:
+
 ```
 dism.exe /online /disable-feature /featurename:Microsoft-Windows-Subsystem-Linux
 dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux
@@ -1075,6 +1334,7 @@ Networks that intercept HTTPS traffic inject their own root CA certificate into 
    Windows Menu → Manage User Certificates → Trusted Root Certification Authorities → Certificates → select the relevant certificate → double-click → Details tab → Copy to File → Base-64 encoded X.509 (.CER) → save to a WSL-accessible path.
 
 2. **Convert and install in WSL**
+
    ```bash
    openssl x509 -inform PEM -in <sourcefile.cer> -out <sourcefile.crt>
    sudo cp <sourcefile.crt> /usr/local/share/ca-certificates/
@@ -1085,12 +1345,15 @@ Networks that intercept HTTPS traffic inject their own root CA certificate into 
 3. **Export the CA path for Node.js**
 
    This is already configured in `zsh/.config/zsh/zsh-exports`:
+
    ```bash
    export NODE_EXTRA_CA_CERTS="/usr/local/share/ca-certificates/<sourcefile.crt>"
    ```
+
    Update the filename if your certificate differs.
 
 References:
+
 - [Converting certificates from Windows to Linux](https://phumipatc.medium.com/how-to-convert-certificate-file-from-windows-to-linux-and-how-to-import-certificate-file-on-linux-4ae78a9740e2)
 - [Copilot self-signed cert fix](https://sidd.io/2023/01/github-copilot-self-signed-cert-issue/)
 - [windows-certs-2-wsl](https://github.com/bayaro/windows-certs-2-wsl) — script to bulk-export all Windows CA certificates into WSL (alternative to manual export)
