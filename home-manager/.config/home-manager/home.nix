@@ -40,6 +40,7 @@ in
     less                             # terminal pager
     hexyl                            # hex viewer for binary files
     git                              # version control system
+    gh                               # GitHub CLI
     delta                            # syntax-highlighted git diff
     curl                             # command line tool for transferring data
     wget                             # network downloader
