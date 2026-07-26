@@ -9,6 +9,7 @@
   - [Bootstrap Packages](#bootstrap-packages)
   - [Terminal Setup](#terminal-setup)
   - [Desktop Environment](#desktop-environment)
+  - [Mouse Cursor](#mouse-cursor)
   - [Keyboard Modifications](#keyboard-modifications)
   - [Fonts](#fonts)
   - [Flatpaks](#flatpaks)
@@ -65,14 +66,14 @@ This setup uses **Nix Home Manager** to manage most *packages* and global tools,
 
 ### Bootstrap Packages
 
-A fresh Ubuntu 24.04 install is missing a couple of tools needed to run the rest of this guide (notably the Nix installer and the dotfiles clone). Install them via apt before doing anything else:
+A fresh Ubuntu 24.04 install is missing some tools needed to run the rest of this guide (notably the Nix installer, dotfiles clone, and font installer). Install them via apt before doing anything else:
 
 ```bash
 sudo apt update
-sudo apt install -y git curl
+sudo apt install -y git curl fontconfig unzip
 ```
 
-> **Note:** These are the only apt packages you need to install by hand for the bootstrap. Once Home Manager is up, it provides its own `git` and `curl` (and they win on `$PATH` since `~/.nix-profile/bin` is prepended). It is recommended to **leave the apt versions in place** — they're tiny, and system services and root-run scripts that don't see your Nix profile may still rely on them.
+> **Note:** These are the only apt packages you need to install by hand for the bootstrap. Once Home Manager is up, it provides its own `git`, `curl`, and `unzip` (and they win on `$PATH` since `~/.nix-profile/bin` is prepended). It is recommended to **leave the apt versions in place** — they're tiny, and system services and root-run scripts that don't see your Nix profile may still rely on them.
 
 ### Terminal Setup
 
@@ -87,6 +88,30 @@ Install GNOME Tweaks for fine-grained desktop and shell customization:
 ```bash
 sudo apt install -y gnome-tweaks
 ```
+
+### Mouse Cursor
+
+This repo ships **Bibata Modern Amber** under `icons/`. Install the cursor
+directories as physical copies, then set GNOME to use the theme:
+
+```bash
+mkdir -p ~/.local/share/icons ~/.icons
+cp -a ~/dotfiles/icons/.local/share/icons/Bibata-Modern-Amber ~/.local/share/icons/
+cp -a ~/dotfiles/icons/.local/share/icons/default ~/.local/share/icons/
+ln -sfn ../.local/share/icons/Bibata-Modern-Amber ~/.icons/Bibata-Modern-Amber
+ln -sfn ../.local/share/icons/default ~/.icons/default
+gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Amber'
+```
+
+Do not stow `icons`: Flatpak exposes `~/.local/share/icons` inside its sandboxes,
+but a Stow link from there into `~/dotfiles` has an inaccessible target. The
+physical copies work in sandboxed applications, while the `~/.icons` links
+cover the legacy Xcursor search path. Re-run the two `cp` commands after
+updating the bundled theme.
+
+The `icons/.local/share/icons/default/index.theme` alias keeps Xcursor fallback paths pointed at the same theme.
+
+Source: [Bibata_Cursor v2.0.7](https://github.com/ful1e5/Bibata_Cursor/releases/tag/v2.0.7) (`Bibata-Modern-Amber.tar.xz`). Upstream version is tracked in `icons/.local/share/icons/Bibata-Modern-Amber/.upstream-version`.
 
 ### Keyboard Modifications
 
@@ -126,26 +151,21 @@ These values are stored per-user in dconf and persist across reboots.
 
 ### Fonts
 
-Install regular [mononoki](https://madmalik.github.io/mononoki/) for WezTerm's text font and [Mononoki Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases) for GNOME Terminal / VS Code terminal glyphs:
+Install the terminal, editor, and UI fonts managed by this repo:
 
 ```bash
-rm -rf ~/.local/share/fonts/mononoki ~/.local/share/fonts/Mononoki
-mkdir -p ~/.local/share/fonts/mononoki ~/.local/share/fonts/Mononoki
-curl -fL https://github.com/madmalik/mononoki/releases/download/1.6/mononoki.zip -o /tmp/mononoki.zip
-curl -fL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Mononoki.zip -o /tmp/Mononoki.zip
-unzip -o /tmp/mononoki.zip -d ~/.local/share/fonts/mononoki
-unzip -o /tmp/Mononoki.zip -d ~/.local/share/fonts/Mononoki
-rm /tmp/mononoki.zip /tmp/Mononoki.zip
-fc-cache -fv
+./scripts/install-fonts.sh
 ```
 
-Verify the fonts are registered:
+The installer provides:
 
-```bash
-fc-match "mononoki"
-fc-list | grep -i 'mononoki.*nerd'
-fc-match "Mononoki Nerd Font Mono"
-```
+- [mononoki](https://madmalik.github.io/mononoki/)
+- [Mononoki and JetBrainsMono Nerd Fonts](https://github.com/ryanoasis/nerd-fonts/releases)
+- Asap, Fragment Mono, Inter, Spline Sans Mono, Martian Mono, Reddit Sans, Reddit Mono, and Iosevka Charon Mono from [Google Fonts](https://github.com/google/fonts)
+
+The script downloads current upstream versions into `~/.local/share/fonts` and refreshes the font cache. Running it again overwrites matching font files; other installed fonts remain untouched.
+
+Ubuntu also includes Noto Sans by default. It is another good general-purpose option alongside the fonts above, so the script does not install it.
 
 Configure GNOME Terminal to use the Nerd Font for prompt and icon glyphs:
 
@@ -209,6 +229,7 @@ flatpak install flathub com.discordapp.Discord
 flatpak install flathub org.localsend.localsend_app
 flatpak install flathub org.videolan.VLC
 flatpak install flathub org.libreoffice.LibreOffice
+flatpak install flathub net.ankiweb.Anki
 ```
 
 ### Default Browser
@@ -698,7 +719,9 @@ WSL2 auto-generates `/etc/resolv.conf` pointing to its internal DNS relay (`10.2
    nix shell nixpkgs\#stow -c stow home-manager zsh tmux lf nvim htop
    ```
 
-   On **Ubuntu OS**, also stow `wezterm` so the WezTerm config is picked up from `~/.config/wezterm/wezterm.lua`:
+   On **Ubuntu OS**, also stow `wezterm`. Install the mouse cursor separately
+   as described in [Mouse Cursor](#mouse-cursor); its files must be copied
+   rather than stowed so Flatpak applications can read them:
 
    ```bash
    nix shell nixpkgs\#stow -c stow wezterm

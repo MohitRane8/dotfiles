@@ -28,7 +28,9 @@ dotfiles/
 ├── lazygit/        # Lazygit config
 ├── htop/           # htop config
 ├── wezterm/        # WezTerm terminal config
+├── icons/          # Mouse cursor theme (Ubuntu GNOME; Bibata Modern Amber)
 ├── firefox/        # Firefox config
+├── scripts/        # Reproducible setup helpers
 ├── wsl/            # WSL configuration (.wslconfig)
 ├── ENVIRONMENT-SETUP.md # Full setup & usage guide
 └── README.md
