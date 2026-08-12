@@ -1,7 +1,8 @@
 # AI Project Workflow
 
-Use this workflow for new projects and non-trivial changes. Its goal is to expose
-assumptions before implementation, then work autonomously from approved intent.
+Use this workflow when starting a project or making a non-trivial change to an
+existing one. Its goal is to expose assumptions before implementation, then work
+autonomously from approved intent.
 
 ## Starting Context
 
