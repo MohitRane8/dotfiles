@@ -4,7 +4,9 @@ Personal configuration files for WSL and Ubuntu, managed with **Nix Home Manager
 
 ## Quick Start
 
-See [ENVIRONMENT-SETUP.md](ENVIRONMENT-SETUP.md) for full installation and usage instructions.
+- [ENVIRONMENT-SETUP.md](ENVIRONMENT-SETUP.md) — workstation installation and usage.
+- [PROJECT-WORKFLOW.md](PROJECT-WORKFLOW.md) — compact AI-assisted project workflow.
+- [AGENTS.md](AGENTS.md) — reusable agent-instruction boilerplate.
 
 ## Philosophy
 
@@ -33,6 +35,8 @@ dotfiles/
 ├── scripts/        # Reproducible setup helpers
 ├── wsl/            # WSL configuration (.wslconfig)
 ├── ENVIRONMENT-SETUP.md # Full setup & usage guide
+├── PROJECT-WORKFLOW.md  # AI-assisted project workflow
+├── AGENTS.md       # Reusable agent-instruction boilerplate
 └── README.md
 ```
 

@@ -16,6 +16,7 @@
   - [Default Browser](#default-browser)
   - [Visual Studio Code Native Tarball](#visual-studio-code-native-tarball)
   - [Cursor AppImage](#cursor-appimage)
+  - [Handy Speech to Text](#handy-speech-to-text)
   - [Codex CLI](#codex-cli)
   - [Agent Skills](#agent-skills)
 - [WSL Setup](#wsl-setup)
@@ -425,7 +426,6 @@ Cursor is another intentional GUI editor exception to Flatpak. Use the official 
    ```bash
    chmod +x ~/.local/bin/cursor
    command -v cursor
-   cursor --version
    ```
 
 5. **Create the desktop launcher**
@@ -463,13 +463,14 @@ Cursor is another intentional GUI editor exception to Flatpak. Use the official 
 
 #### Update
 
-Download the latest AppImage, close Cursor, and replace the old file:
+Download the latest AppImage from [cursor.com/download](https://cursor.com/download), then fully quit Cursor before replacing the file (overwriting a mounted AppImage can fail or leave a bad mount). The wrapper and desktop entry can stay in place.
 
 ```bash
-mv ~/Downloads/Cursor-*.AppImage ~/.local/opt/cursor/Cursor.AppImage
+mv "$(ls -t ~/Downloads/Cursor-*.AppImage | head -1)" ~/.local/opt/cursor/Cursor.AppImage
 chmod +x ~/.local/opt/cursor/Cursor.AppImage
-cursor --version
 ```
+
+If the app icon looks wrong after an update, re-run the icon extract steps from Install step 3.
 
 #### Remove
 
@@ -487,6 +488,75 @@ Optionally remove user data, caches, settings, and extensions:
 rm -rf ~/.config/Cursor
 rm -rf ~/.cache/Cursor
 rm -rf ~/.cursor
+```
+
+### Handy Speech to Text
+
+[Handy](https://github.com/cjpais/Handy) is an offline speech-to-text desktop app. Use its official Debian package on Ubuntu because it needs native microphone, global-shortcut, and text-input integration. The package provides the command, desktop entry, icon, and required runtime libraries.
+
+#### Install
+
+1. **Download the Debian package**
+
+   Download the latest `Handy_*_amd64.deb` asset from the official [Handy releases page](https://github.com/cjpais/Handy/releases/latest). This setup targets x86-64 Ubuntu; use the `arm64.deb` asset instead on an ARM machine.
+
+2. **Install Handy and the text-input helper**
+
+   Check the current display server:
+
+   ```bash
+   echo "$XDG_SESSION_TYPE"
+   ```
+
+   On X11, install the downloaded package with `xdotool`:
+
+   ```bash
+   handy_deb=$(find "$HOME/Downloads" -maxdepth 1 -type f -name 'Handy_*_amd64.deb' -printf '%T@ %p\n' | sort -nr | head -n1 | cut -d' ' -f2-)
+   sudo apt install -y "$handy_deb" xdotool
+   ```
+
+   On Wayland, replace `xdotool` with `wtype`. Handy falls back to a less reliable input method when the appropriate helper is missing. The Debian package installs `libgtk-layer-shell0` and its other runtime dependencies automatically.
+
+3. **Verify and launch**
+
+   ```bash
+   dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' handy
+   command -v handy
+   handy --help
+   ```
+
+   Launch Handy from the GNOME app menu. Grant microphone access, download a transcription model, choose a keyboard shortcut, and test dictation in a text field. Audio and transcription stay on the local machine.
+
+   Handy disables its recording overlay by default on Linux because the overlay can steal focus and prevent text from being pasted into the original app. Leave **Settings → Advanced → Overlay Position** set to **None** if pasting is unreliable.
+
+   On a Wayland session, configure the global shortcut through **Settings → Keyboard → Keyboard Shortcuts → Custom Shortcuts** if Handy cannot register it directly. Use this command for the shortcut:
+
+   ```bash
+   handy --toggle-transcription
+   ```
+
+#### Update
+
+Download the latest matching `.deb` from the [Handy releases page](https://github.com/cjpais/Handy/releases/latest), fully quit Handy, and install it over the existing package:
+
+```bash
+handy_deb=$(find "$HOME/Downloads" -maxdepth 1 -type f -name 'Handy_*_amd64.deb' -printf '%T@ %p\n' | sort -nr | head -n1 | cut -d' ' -f2-)
+sudo apt install -y "$handy_deb"
+dpkg-query -W -f='${Version}\n' handy
+```
+
+#### Remove
+
+Remove the application while retaining its settings, model downloads, and the text-input helper:
+
+```bash
+sudo apt remove -y handy
+```
+
+Optionally remove all Handy user data, including settings, history, and downloaded models:
+
+```bash
+rm -rf ~/.config/com.pais.handy
 ```
 
 ### Codex CLI
@@ -520,16 +590,21 @@ Most packages and CLI tools should be managed through Home Manager. Agent skills
 The currently tracked global skills are:
 
 - [caveman](https://github.com/JuliusBrussee/caveman) — compressed communication modes and related helper skills.
-- [find-skills](https://skills.sh/vercel-labs/skills/find-skills) — discovers other skills from the open agent skills ecosystem.
+- [Matt Pocock's skills](https://github.com/mattpocock/skills) — engineering and productivity workflows shared by Codex and Cursor.
 
 This is less deterministic than `flake.lock`, but keeps agent-specific skill wiring aligned with the upstream installer.
 
-Install for the current agent:
+Install globally:
 
 ```bash
 npx skills add JuliusBrussee/caveman -g
-npx skills add vercel-labs/skills --skill find-skills -g
+npx skills@latest add mattpocock/skills -g -a codex -a cursor
 ```
+
+For Matt Pocock's interactive installer, select the supported engineering and
+productivity skills needed, including `setup-matt-pocock-skills`. Skip
+deprecated, in-progress, personal, and agent-specific skills unless needed.
+Restart Codex and Cursor after installation.
 
 Audit installed skills:
 
@@ -543,7 +618,6 @@ Uninstall:
 
 ```bash
 npx skills remove caveman -a codex -g
-npx skills remove find-skills -a codex -g
 ```
 
 Use caveman in an agent session:
@@ -553,18 +627,17 @@ $caveman
 /caveman
 ```
 
-Search for skills from the terminal:
-
-```bash
-npx skills find react testing
-```
-
-Or ask the agent naturally:
+Configure Matt Pocock's engineering skills once per project. Start either Codex
+or Cursor from the project root, then invoke:
 
 ```text
-Find a skill for React testing.
-Is there a skill for changelog generation?
+$setup-matt-pocock-skills
 ```
+
+Do not run setup in both agents for the same project. Setup writes shared
+project configuration to `AGENTS.md` or `CLAUDE.md` and `docs/agents/`. Commit
+those files so both agents and other clones use the same configuration. Re-run
+setup only when changing the issue tracker, triage labels, or domain-doc layout.
 
 ## WSL Setup
 
