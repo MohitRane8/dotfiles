@@ -67,7 +67,7 @@ This setup uses **Nix Home Manager** to manage most *packages* and global tools,
 
 ### Bootstrap Packages
 
-A fresh Ubuntu 24.04 install is missing some tools needed to run the rest of this guide (notably the Nix installer, dotfiles clone, and font installer). Install them via apt before doing anything else:
+A fresh Ubuntu 26.04 install is missing some tools needed to run the rest of this guide (notably the Nix installer, dotfiles clone, and font installer). Install them via apt before doing anything else:
 
 ```bash
 sudo apt update
@@ -120,11 +120,9 @@ Source: [Bibata_Cursor v2.0.7](https://github.com/ful1e5/Bibata_Cursor/releases/
 
 [keyd](https://github.com/rvaiya/keyd) is a low-level key remapping daemon that runs as a systemd service, so the remaps work uniformly across X11, Wayland, the TTY, and the login screen.
 
-1. **Install keyd** from the maintainer's PPA:
+1. **Install keyd** from Ubuntu universe:
 
    ```bash
-   sudo add-apt-repository -y ppa:keyd-team/ppa
-   sudo apt update
    sudo apt install -y keyd
    sudo systemctl enable --now keyd
    ```
@@ -168,12 +166,11 @@ The script downloads current upstream versions into `~/.local/share/fonts` and r
 
 Ubuntu also includes Noto Sans by default. It is another good general-purpose option alongside the fonts above, so the script does not install it.
 
-Configure GNOME Terminal to use the Nerd Font for prompt and icon glyphs:
+Configure Ptyxis (Ubuntu's default terminal) to use the Nerd Font for prompt and icon glyphs:
 
 ```bash
-PROFILE=$(gsettings get org.gnome.Terminal.ProfilesList default | tr -d "'")
-gsettings set "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$PROFILE/" use-system-font false
-gsettings set "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$PROFILE/" font "Mononoki Nerd Font Mono 12"
+gsettings set org.gnome.Ptyxis use-system-font false
+gsettings set org.gnome.Ptyxis font-name 'Mononoki Nerd Font 12'
 ```
 
 Configure VS Code's integrated terminal to use the same Nerd Font in `~/.config/Code/User/settings.json`:
@@ -492,48 +489,60 @@ rm -rf ~/.cursor
 
 ### Handy Speech to Text
 
-[Handy](https://github.com/cjpais/Handy) is an offline speech-to-text desktop app. Use its official Debian package on Ubuntu because it needs native microphone, global-shortcut, and text-input integration. The package provides the command, desktop entry, icon, and required runtime libraries.
+[Handy](https://github.com/cjpais/Handy) provides local speech-to-text with a live overlay. This setup uses Ubuntu GNOME on Wayland, launches Handy through XWayland, and pastes the completed transcript all at once in apps and terminals.
 
 #### Install
 
 1. **Download the Debian package**
 
-   Download the latest `Handy_*_amd64.deb` asset from the official [Handy releases page](https://github.com/cjpais/Handy/releases/latest). This setup targets x86-64 Ubuntu; use the `arm64.deb` asset instead on an ARM machine.
+   Download `Handy_*_amd64.deb` from the official [Handy releases page](https://github.com/cjpais/Handy/releases/latest) into `~/Downloads`.
 
-2. **Install Handy and the text-input helper**
-
-   Check the current display server:
-
-   ```bash
-   echo "$XDG_SESSION_TYPE"
-   ```
-
-   On X11, install the downloaded package with `xdotool`:
+2. **Install Handy and the paste helper**
 
    ```bash
    handy_deb=$(find "$HOME/Downloads" -maxdepth 1 -type f -name 'Handy_*_amd64.deb' -printf '%T@ %p\n' | sort -nr | head -n1 | cut -d' ' -f2-)
-   sudo apt install -y "$handy_deb" xdotool
+   sudo apt install -y "$handy_deb" ydotool python3-gi gir1.2-gtk-3.0 gir1.2-atspi-2.0
+   sudo usermod -aG input "$USER"
+   install -Dm755 ~/dotfiles/scripts/handy-paste ~/.local/bin/handy-paste
    ```
 
-   On Wayland, replace `xdotool` with `wtype`. Handy falls back to a less reliable input method when the appropriate helper is missing. The Debian package installs `libgtk-layer-shell0` and its other runtime dependencies automatically.
-
-3. **Verify and launch**
+   Log out and back in, then enable the input service:
 
    ```bash
-   dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' handy
-   command -v handy
-   handy --help
+   systemctl --user enable --now ydotool.service
    ```
 
-   Launch Handy from the GNOME app menu. Grant microphone access, download a transcription model, choose a keyboard shortcut, and test dictation in a text field. Audio and transcription stay on the local machine.
-
-   Handy disables its recording overlay by default on Linux because the overlay can steal focus and prevent text from being pasted into the original app. Leave **Settings → Advanced → Overlay Position** set to **None** if pasting is unreliable.
-
-   On a Wayland session, configure the global shortcut through **Settings → Keyboard → Keyboard Shortcuts → Custom Shortcuts** if Handy cannot register it directly. Use this command for the shortcut:
+3. **Configure the launcher and startup**
 
    ```bash
-   handy --toggle-transcription
+   mkdir -p ~/.local/share/applications
+   sed 's|^Exec=.*|Exec=/usr/bin/env GDK_BACKEND=x11 /usr/bin/handy|' /usr/share/applications/Handy.desktop > ~/.local/share/applications/Handy.desktop
    ```
+
+   Launch Handy from the app menu, grant microphone access, and download a transcription model. Enable experimental features in Handy's settings, then set:
+
+   - **Overlay Style:** Live; **Overlay Position:** Bottom.
+   - **Keyboard Implementation:** Tauri Global Shortcut.
+   - **Shortcut Activation:** Toggle; **Transcribe shortcut:** `Ctrl+Alt+Shift+F12`.
+   - **Typing Tool:** `ydotool`; **Paste Method:** External Script.
+   - **External Script Path:** the absolute path printed by `echo "$HOME/.local/bin/handy-paste"`.
+
+   Quit Handy, then configure startup:
+
+   ```bash
+   mkdir -p ~/.config/autostart
+   sed 's|^Exec=.*|Exec=/usr/bin/env GDK_BACKEND=x11 /usr/bin/handy --start-hidden|' ~/.local/share/applications/Handy.desktop > ~/.config/autostart/Handy.desktop
+   ```
+
+4. **Add the Ubuntu shortcut**
+
+   In **Settings → Keyboard → Keyboard Shortcuts → Custom Shortcuts**, add **Handy**, bind it to `Ctrl+Space`, and use:
+
+   ```bash
+   /usr/bin/env GDK_BACKEND=x11 /usr/bin/handy --toggle-transcription
+   ```
+
+   Open Handy and focus a text field. Press `Ctrl+Space` to start dictation and again to paste the completed transcript. The helper uses `Ctrl+Shift+V` in terminals and `Ctrl+V` in other apps.
 
 #### Update
 
@@ -547,16 +556,17 @@ dpkg-query -W -f='${Version}\n' handy
 
 #### Remove
 
-Remove the application while retaining its settings, model downloads, and the text-input helper:
+Remove Handy and its launcher, startup entry, and paste helper:
 
 ```bash
 sudo apt remove -y handy
+rm -f ~/.local/share/applications/Handy.desktop ~/.config/autostart/Handy.desktop ~/.local/bin/handy-paste
 ```
 
-Optionally remove all Handy user data, including settings, history, and downloaded models:
+Delete the Handy custom shortcut in Ubuntu Settings. Optionally remove its settings, history, and downloaded models:
 
 ```bash
-rm -rf ~/.config/com.pais.handy
+rm -rf ~/.config/com.pais.handy ~/.local/share/com.pais.handy
 ```
 
 ### Codex CLI

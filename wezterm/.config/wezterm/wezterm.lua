@@ -1,4 +1,5 @@
 local wezterm = require 'wezterm'
+local mux = wezterm.mux
 local act = wezterm.action
 
 -- Use config_builder in newer wezterm versions for clearer error messages
@@ -12,21 +13,16 @@ config.check_for_updates = false
 -- ============================================================================
 -- Fonts
 -- ============================================================================
--- The Mononoki Nerd Font can register under different family names depending on
--- the host OS. On native Linux, use regular mononoki for text and WezTerm's
--- bundled Nerd Font Symbols fallback for icons; this keeps the larger symbol
--- rendering that WezTerm had before GNOME Terminal needed a patched font.
---   - Windows / WSL (wezterm runs on Windows): 'mononoki Bold'
---   - Native Linux (Ubuntu OS): regular 'mononoki' + Nerd Font Symbols fallback
+-- Unpatched mononoki for text. WezTerm's bundled Nerd Font Symbols cover icons.
+-- Windows registers the face as family 'mononoki Bold'; Ubuntu uses weight.
 local font = wezterm.font_with_fallback {
-  'mononoki',
-  { family = 'Nerd Font Symbols Font', scale = 1.2 },
+  { family = 'mononoki', weight = 'Bold' },
 }
 if wezterm.target_triple:find('windows') then
   font = wezterm.font('mononoki Bold')
 end
 config.font = font
-config.font_size = 11
+config.font_size = 15
 config.line_height = 1.1
 config.warn_about_missing_glyphs = false
 
@@ -40,7 +36,7 @@ config.warn_about_missing_glyphs = false
 --                       'Gruvbox dark, hard (base16)', 'Monokai Vivid',
 --                       'Nature Suede (terminal.sexy)', 'Night Owl (Gogh)',
 --                       'terafox', 'Ubuntu'
-config.color_scheme = 'Gooey (Gogh)'
+config.color_scheme = 'Derp (terminal.sexy)'
 
 config.default_cursor_style = 'BlinkingBlock'
 
@@ -99,6 +95,51 @@ config.mouse_bindings = {
 -- ============================================================================
 -- Window / Tabs
 -- ============================================================================
+-- Wayland/GNOME applies maximize asynchronously. Fullscreen before that
+-- uses the default small geometry (bottom-right). Wait until the window
+-- actually grows, then fullscreen. Timer is a fallback if resize is skipped.
+local startup_fullscreen = { pending = true, width = nil, height = nil }
+
+local function apply_startup_fullscreen(window)
+  if not startup_fullscreen.pending then
+    return
+  end
+  local dims = window:get_dimensions()
+  if dims.is_full_screen then
+    startup_fullscreen.pending = false
+    return
+  end
+  if not startup_fullscreen.width then
+    startup_fullscreen.width = dims.pixel_width
+    startup_fullscreen.height = dims.pixel_height
+    return
+  end
+  if
+    dims.pixel_width > startup_fullscreen.width + 50
+    or dims.pixel_height > startup_fullscreen.height + 50
+  then
+    startup_fullscreen.pending = false
+    window:toggle_fullscreen()
+  end
+end
+
+wezterm.on('gui-startup', function(cmd)
+  local tab, pane, window = mux.spawn_window(cmd or {})
+  local gui_window = window:gui_window()
+  gui_window:maximize()
+  wezterm.time.call_after(0.5, function()
+    if startup_fullscreen.pending then
+      startup_fullscreen.pending = false
+      gui_window:maximize()
+      gui_window:toggle_fullscreen()
+    end
+  end)
+end)
+
+wezterm.on('window-resized', function(window, pane)
+  apply_startup_fullscreen(window)
+end)
+
 config.window_padding = { left = 0, right = 0, top = 2, bottom = 0 }
 config.hide_tab_bar_if_only_one_tab = true
 config.enable_scroll_bar = false
