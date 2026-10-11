@@ -17,6 +17,7 @@
   - [Visual Studio Code Native Tarball](#visual-studio-code-native-tarball)
   - [Cursor AppImage](#cursor-appimage)
   - [Handy Speech to Text](#handy-speech-to-text)
+  - [ChatGPT Desktop App](#chatgpt-desktop-app)
   - [Codex CLI](#codex-cli)
   - [Agent Skills](#agent-skills)
 - [WSL Setup](#wsl-setup)
@@ -568,6 +569,53 @@ Delete the Handy custom shortcut in Ubuntu Settings. Optionally remove its setti
 ```bash
 rm -rf ~/.config/com.pais.handy ~/.local/share/com.pais.handy
 ```
+
+### ChatGPT Desktop App
+
+The ChatGPT desktop app is the official Linux GUI for ChatGPT and Codex. It is a deliberate Ubuntu OS exception to Home Manager and to the Flatpak rule: OpenAI ships a `.deb` that installs the app, a GNOME desktop entry, and a signed apt repository for updates. Keep the separate Codex CLI install; the desktop app does not replace it.
+
+Ubuntu 26.04 x64 and ARM64 are in the official preview support list. Computer Use is not available in the Linux preview. Native Wayland support is experimental; in this GNOME Wayland session the app uses XWayland by default.
+
+#### Install
+
+1. **Download the Debian package**
+
+   Download the matching `.deb` from the official [ChatGPT desktop app for Linux](https://learn.chatgpt.com/docs/linux/linux-app) page into `~/Downloads`. Use `chatgpt_amd64.deb` when `uname -m` reports `x86_64`, or `chatgpt_arm64.deb` for `aarch64`.
+
+2. **Install the package**
+
+   ```bash
+   cd ~/Downloads
+   sudo apt install ./chatgpt_amd64.deb
+   ```
+
+   The first install adds `/etc/apt/sources.list.d/chatgpt.sources` and `/usr/share/keyrings/chatgpt-archive-keyring.gpg`. Open ChatGPT from the applications menu, or run `chatgpt`. Sign in with a ChatGPT account and choose Codex in the app.
+
+   To try native Wayland instead of XWayland, fully quit the app and launch:
+
+   ```bash
+   chatgpt --ozone-platform=wayland
+   ```
+
+   Floating windows, window positioning, focus, and keyboard shortcuts may not fully work while native Wayland support matures.
+
+#### Update
+
+```bash
+sudo apt update
+sudo apt install --only-upgrade chatgpt
+dpkg-query -W -f='${Version}\n' chatgpt
+```
+
+#### Remove
+
+Purge the package so the OpenAI apt repository and signing key are removed with it:
+
+```bash
+sudo apt purge -y chatgpt
+```
+
+Do not delete `~/.codex` unless you also intend to remove Codex CLI state. After you have used the desktop app, optionally delete leftover GUI config or cache directories under `~/.config` and `~/.cache` that the app created.
 
 ### Codex CLI
 
@@ -1168,7 +1216,7 @@ home-manager switch --flake ~/.config/home-manager\#$USER-wsl
 
 #### Inspecting Manually-Installed apt Packages
 
-After running through Ubuntu OS Setup, the `git`, `curl`, `wezterm`, `gnome-tweaks`, `keyd`, `flatpak`, etc. packages are the only things installed via apt — everything else comes from Home Manager. Two commands help audit what's actually on the system:
+After running through Ubuntu OS Setup, the `git`, `curl`, `wezterm`, `gnome-tweaks`, `keyd`, `flatpak`, `chatgpt`, etc. packages are the only things installed via apt — everything else comes from Home Manager. Two commands help audit what's actually on the system:
 
 - **`apt-mark showmanual`** — lists every package marked as manually installed (i.e., not pulled in only as a dependency). It includes packages that ship preinstalled on the Ubuntu image, so the list is longer than what you personally installed.
 - **`grep "Commandline: apt install" /var/log/apt/history.log`** — replays only the `apt install` commands you actually typed (along with their flags). Useful for reconstructing what was installed by hand, especially after a long-lived install. Older entries roll into rotated logs (`/var/log/apt/history.log.*.gz`) — use `zgrep` to include those:
