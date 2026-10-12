@@ -22,7 +22,7 @@ if wezterm.target_triple:find('windows') then
   font = wezterm.font('mononoki Bold')
 end
 config.font = font
-config.font_size = 15
+config.font_size = 14
 config.line_height = 1.1
 config.warn_about_missing_glyphs = false
 

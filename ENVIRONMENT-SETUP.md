@@ -7,6 +7,7 @@
 - [Architecture & Features](#architecture--features)
 - [Ubuntu OS Setup](#ubuntu-os-setup)
   - [Bootstrap Packages](#bootstrap-packages)
+  - [Docker Engine and Compose](#docker-engine-and-compose)
   - [Terminal Setup](#terminal-setup)
   - [Desktop Environment](#desktop-environment)
   - [Mouse Cursor](#mouse-cursor)
@@ -76,6 +77,75 @@ sudo apt install -y git curl fontconfig unzip
 ```
 
 > **Note:** These are the only apt packages you need to install by hand for the bootstrap. Once Home Manager is up, it provides its own `git`, `curl`, and `unzip` (and they win on `$PATH` since `~/.nix-profile/bin` is prepended). It is recommended to **leave the apt versions in place** — they're tiny, and system services and root-run scripts that don't see your Nix profile may still rely on them.
+
+### Docker Engine and Compose
+
+Docker Engine and the Docker Compose plugin are intentional host-level Ubuntu
+exceptions to Home Manager. The daemon, socket, systemd services, networking,
+and user-group integration belong to the operating system. Install the official
+Docker packages using [Docker's Ubuntu apt-repository instructions](https://docs.docker.com/engine/install/ubuntu/);
+do not use Docker Desktop, Snap, Ubuntu's `docker.io` package, or Docker's
+convenience script for this setup.
+
+Docker-published container ports can bypass `ufw` rules. Bind development
+services explicitly to `127.0.0.1` unless a separately reviewed deployment
+design requires broader access.
+
+1. Remove packages that conflict with Docker's official packages. It is safe if
+   none are currently installed:
+
+   ```bash
+   sudo apt remove -y $(dpkg --get-selections docker.io docker-compose docker-compose-v2 docker-doc docker-buildx podman-docker containerd runc 2>/dev/null | cut -f1)
+   ```
+
+2. Add Docker's official signing key and apt repository:
+
+   ```bash
+   sudo apt update
+   sudo apt install -y ca-certificates curl
+   sudo install -m 0755 -d /etc/apt/keyrings
+   sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+   sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+   sudo tee /etc/apt/sources.list.d/docker.sources >/dev/null <<EOF
+   Types: deb
+   URIs: https://download.docker.com/linux/ubuntu
+   Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+   Components: stable
+   Architectures: $(dpkg --print-architecture)
+   Signed-By: /etc/apt/keyrings/docker.asc
+   EOF
+
+   sudo apt update
+   ```
+
+3. Install Docker Engine, Buildx, and the Compose plugin from that repository:
+
+   ```bash
+   sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+   sudo systemctl enable --now docker.service containerd.service
+   ```
+
+4. Allow the current user to run the Docker CLI without `sudo`:
+
+   ```bash
+   sudo usermod -aG docker "$USER"
+   ```
+
+   Membership in the `docker` group grants root-level privileges. Log out and
+   back in before relying on the new membership; `newgrp docker` can activate it
+   in one temporary shell when an immediate check is needed.
+
+5. Verify the daemon, Compose plugin, and a test container after logging back in:
+
+   ```bash
+   docker version
+   docker compose version
+   docker run --rm hello-world
+   ```
+
+Docker Engine and Compose are upgraded through normal apt maintenance after the
+repository is configured.
 
 ### Terminal Setup
 
@@ -649,6 +719,7 @@ The currently tracked global skills are:
 
 - [caveman](https://github.com/JuliusBrussee/caveman) — compressed communication modes and related helper skills.
 - [Matt Pocock's skills](https://github.com/mattpocock/skills) — engineering and productivity workflows shared by Codex and Cursor.
+- [i-have-adhd](https://github.com/ayghri/i-have-adhd) — ADHD-friendly output: lead with the next action, number steps, and skip buried answers.
 
 This is less deterministic than `flake.lock`, but keeps agent-specific skill wiring aligned with the upstream installer.
 
@@ -657,6 +728,7 @@ Install globally:
 ```bash
 npx skills add JuliusBrussee/caveman -g
 npx skills@latest add mattpocock/skills -g -a codex -a cursor
+npx skills add ayghri/i-have-adhd -g -a codex -a cursor
 ```
 
 For Matt Pocock's interactive installer, select the supported engineering and
@@ -676,6 +748,7 @@ Uninstall:
 
 ```bash
 npx skills remove caveman -a codex -g
+npx skills remove i-have-adhd -g
 ```
 
 Use caveman in an agent session:
@@ -684,6 +757,15 @@ Use caveman in an agent session:
 $caveman
 /caveman
 ```
+
+Use i-have-adhd in an agent session:
+
+```text
+$i-have-adhd
+/i-have-adhd
+```
+
+Rules stay on for that session until `stop adhd mode` or `normal mode`.
 
 Configure Matt Pocock's engineering skills once per project. Start either Codex
 or Cursor from the project root, then invoke:
@@ -1216,7 +1298,7 @@ home-manager switch --flake ~/.config/home-manager\#$USER-wsl
 
 #### Inspecting Manually-Installed apt Packages
 
-After running through Ubuntu OS Setup, the `git`, `curl`, `wezterm`, `gnome-tweaks`, `keyd`, `flatpak`, `chatgpt`, etc. packages are the only things installed via apt — everything else comes from Home Manager. Two commands help audit what's actually on the system:
+After running through Ubuntu OS Setup, the `git`, `curl`, `wezterm`, `gnome-tweaks`, `keyd`, `flatpak`, `docker-ce`, `handy`, `chatgpt`, etc. packages are the only things installed via apt — everything else comes from Home Manager. Two commands help audit what's actually on the system:
 
 - **`apt-mark showmanual`** — lists every package marked as manually installed (i.e., not pulled in only as a dependency). It includes packages that ship preinstalled on the Ubuntu image, so the list is longer than what you personally installed.
 - **`grep "Commandline: apt install" /var/log/apt/history.log`** — replays only the `apt install` commands you actually typed (along with their flags). Useful for reconstructing what was installed by hand, especially after a long-lived install. Older entries roll into rotated logs (`/var/log/apt/history.log.*.gz`) — use `zgrep` to include those:
